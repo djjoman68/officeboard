@@ -56,6 +56,12 @@
     <div class="section-body">
       <div class="field"><label for="d-bright">Brightness (%)</label>
         <input id="d-bright" type="number" min="1" max="100" data-path="config.display.brightness" data-type="int"></div>
+      <div class="field"><label for="d-layout">Layout</label>
+        <select id="d-layout" data-path="config.display.layout">
+          <option value="pages">Pages (screens flip)</option><option value="roll">Roll (screens slide up)</option>
+          <option value="ticker">Full ticker (one big scrolling line)</option><option value="split">Split (time bar + scrolling line)</option>
+        </select>
+        <span class="hint">How modules show their information. Each module can use its own layout instead (Modules page).</span></div>
       <div class="field"><label for="d-page">Page flip (seconds)</label>
         <input id="d-page" type="number" min="2" max="60" data-path="config.display.page_seconds" data-type="int">
         <span class="hint">When a module has more than one screen.</span></div>

@@ -4,10 +4,11 @@ To add a module: write it in modules/, then list it in MODULE_CLASSES (replacing
 """
 import config
 from modules.clock import ClockWeather
+from modules.demo import ScrollDemo
 from modules.paneltest import PanelTest
 from modules.planned import Mlb, Nfl, Nyra, Stocks
 
-MODULE_CLASSES = [ClockWeather, Stocks, Nyra, Mlb, Nfl, PanelTest]
+MODULE_CLASSES = [ClockWeather, Stocks, Nyra, Mlb, Nfl, ScrollDemo, PanelTest]
 BY_ID = {cls.id: cls for cls in MODULE_CLASSES}
 DEFAULT_ORDER = [cls.id for cls in MODULE_CLASSES]
 

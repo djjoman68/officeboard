@@ -150,6 +150,25 @@ def centred(img, font, text, y, colour, x0=0, x1=64):
     pixels.draw_text(img, font, x0 + max(0, (x1 - x0 - w) // 2), y, colour, text)
 
 
+# Tomorrow.io weather codes as short words for the scrolling layouts
+CONDITIONS = {
+    1000: "CLEAR", 1100: "MOSTLY CLEAR", 1101: "PARTLY CLOUDY", 1102: "MOSTLY CLOUDY", 1001: "CLOUDY",
+    2000: "FOG", 2100: "LIGHT FOG", 4000: "DRIZZLE", 4001: "RAIN", 4200: "LIGHT RAIN", 4201: "HEAVY RAIN",
+    5000: "SNOW", 5001: "FLURRIES", 5100: "LIGHT SNOW", 5101: "HEAVY SNOW", 6000: "FREEZING DRIZZLE",
+    6001: "FREEZING RAIN", 6200: "LIGHT FREEZING RAIN", 6201: "HEAVY FREEZING RAIN", 7000: "SLEET",
+    7101: "HEAVY SLEET", 7102: "LIGHT SLEET", 8000: "STORMS",
+}
+CONDITION_GROUPS = {1: "CLOUDY", 2: "FOG", 4: "RAIN", 5: "SNOW", 6: "FREEZING RAIN", 7: "SLEET", 8: "STORMS"}
+
+
+def condition(code):
+    """A word or two for a weather code ("PARTLY CLOUDY"); mixed codes fall back to their group."""
+    if not isinstance(code, int):
+        return ""
+    code = code // 10 if code >= 10000 else code
+    return CONDITIONS.get(code) or CONDITION_GROUPS.get(code // 1000, "")
+
+
 _icons = {}
 
 
@@ -288,7 +307,55 @@ class ClockWeather(Module):
     def has_content(self, now):
         return True             # the clock always has something to show, weather or not
 
-    def frame(self, now, t):
+    def pages(self, now):
+        """For the roll layout: the forecast screen, then sunrise and sunset."""
+        alerts = self.alerts(now)
+        alert = alerts[int(now.timestamp() // ALERT_SECONDS) % len(alerts)] if alerts else None
+        key = (now.strftime("%Y-%m-%d %H:%M"), repr(alert), id(self.data), self.board.location["clock_format"])
+        if getattr(self, "_pages_key", None) != key:
+            self._pages = [self.draw(now, "forecast", alert)]
+            if self.sun_times(now):
+                self._pages.append(self.draw(now, "sun", alert))
+            self._pages_key = key
+        return self._pages
+
+    def ticker_items(self, now):
+        """For the scrolling layouts: alerts, the time (full ticker only; the split layout's top bar
+        has it), the date, now, today, tomorrow, sunrise and sunset."""
+        fmt = self.board.location["clock_format"]
+        items = [[(a["text"], ALERT_COLOURS.get(a["color"], ALERT_COLOURS["orange"]))] for a in self.alerts(now)]
+        if self.layout() == "ticker":
+            items.append([(time_text(now, fmt).strip(), self.clock_colour(now))])
+        items.append([(f"{DAYS[now.weekday()]} {MONTHS[now.month - 1]} {now.day}".upper(), WHITE)])
+        current = (self.data or {}).get("current")
+        if current:
+            items.append([(f"{round(current['temp'])}°", blend(TEMP_DRY, TEMP_HUMID, (current.get("humidity") or 0) / 100)),
+                          (f" {condition(current.get('code'))}", WHITE)])
+        for i, day in enumerate(self._days(now)[:2]):
+            if day["min"] is None or day["max"] is None:
+                continue
+            name = "TODAY" if day["date"] == now.date() else DAYS[day["date"].weekday()].upper()
+            items.append([(name + " ", DAY_NAME), (f"{day['max']:.0f}", TEMP_MAX), ("/", pixels.DIM),
+                          (f"{day['min']:.0f}", TEMP_MIN), (f" {condition(day['code'])}", WHITE)])
+        sun = self.sun_times(now)
+        if sun:
+            items.append([("↑ ", SUNRISE), (short_time(sun[0], fmt), SUNRISE),
+                          ("  ↓ ", SUNSET), (short_time(sun[1], fmt), SUNSET)])
+        return items
+
+    def status_bar(self, now):
+        """The split layout's top bar: time on the left, temperature on the right."""
+        bar = Image.new("RGB", (pixels.WIDTH, 9), pixels.BLACK)
+        pixels.draw_text(bar, "small", 1, 7, self.clock_colour(now), time_text(now, self.board.location["clock_format"]).strip())
+        current = (self.data or {}).get("current")
+        if current:
+            text = f"{round(current['temp'])}°"
+            colour = blend(TEMP_DRY, TEMP_HUMID, (current.get("humidity") or 0) / 100)
+            pixels.draw_text(bar, "small", 63 - pixels.text_width("small", text), 7, colour, text)
+        return bar
+
+    def page_frame(self, now, t):
+        """Pages layout: the forecast screen, with sunrise and sunset for the last few seconds of the turn."""
         sun = self.sun_times(now)
         secs, sun_secs = self.settings["seconds"], self.settings["sun_seconds"]
         page = "sun" if sun and sun_secs and (t % secs) >= secs - sun_secs else "forecast"

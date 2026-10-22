@@ -17,6 +17,7 @@ class PanelTest(Module):
     description = "Colour bars and scrolling text with the frame rate. For checking the panel."
     default_enabled = True
     default_seconds = 20
+    supports_layouts = False    # always colour bars + scrolling text
     fields = [
         {"key": "message", "label": "Scrolling text", "type": "text", "default": "OFFICE BOARD",
          "hint": "Any text, to see how it reads when it scrolls."},

@@ -30,7 +30,10 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 - Oct 22 2026: step 1 (foundation) built and tested offline: module system, scheduler, 50 fps display
   loop, web UI (Board, Modules, Settings, Logs), installer, Panel test module. Not yet run on the Pi.
 - Oct 22 2026: step 2 built and tested offline: Clock & weather module (itsposttime's layout and
-  sources), sleep mode (schedule, all-day days, Sleep now / Wake now). Next: step 3 (scroll experiment).
+  sources), sleep mode (schedule, all-day days, Sleep now / Wake now).
+- Oct 22 2026: step 3 built: four layouts (pages, roll, full ticker, split), board-wide or per module,
+  Scroll demo module, comparison GIFs (`python3 tools/compare_layouts.py` -> previews/). Waiting for
+  Joe to pick a layout; default stays Pages. Next: step 4 (stocks).
 - Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
 
 ## Layout
@@ -44,18 +47,23 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | `core/scheduler.py` | Rotation: order, turn length, skip modules with nothing to show, hold, take-over. Pure logic |
 | `core/display.py` | Panel options + main loop at `fps`; only changed frames go to the panel; status + frame to /dev/shm/officeboard |
 | `core/pixels.py` | Pillow drawing with the .bdf fonts, `text_strip` + `marquee` for scrolling, `led_preview` |
+| `core/layouts.py` | The four layouts: `roll`, `ticker`, `split`, `text_page`; `join_items` for ticker text |
 | `core/sleep.py` | Sleep schedule, all-day days, Sleep now / Wake now overrides. Pure logic |
 | `modules/clock.py` | Clock & weather: Tomorrow.io fetch + disk cache, itsposttime's layout, sun at end of turn, alerts, sleep screen |
 | `modules/nws.py` | Severe weather alerts (from itsposttime) |
-| `modules/paneltest.py` | Panel test module |
+| `modules/demo.py` | Scroll demo: made-up stocks, race, games for comparing layouts; remove when real modules exist |
+| `modules/paneltest.py` | Panel test module (opts out of layouts) |
 | `modules/planned.py` | Stand-ins for modules not built yet (shown on the Modules page as "coming in step N") |
 | `web/` | Flask app on :8080. Modules page forms are built from each module's `fields` |
 | `tools/preview.py` | preview.gif / preview.png of the rotation, simulated time |
+| `tools/compare_layouts.py` | previews/layout-a..d GIFs: clock + scroll demo in each layout |
 | `tools/dev.py` | Whole board on a computer with the fake panel, web UI on localhost:8080 |
 | `tests/` | Offline tests with a fake `rgbmatrix` (tests/fakes) |
 
-To add a module: subclass `Module` in modules/, list it in `core/registry.py` in place of its planned
-stand-in, add tests, and preview it.
+To add a module: subclass `Module` in modules/, give it `pages()` and `ticker_items()` (so every layout
+works), list it in `core/registry.py` in place of its planned stand-in, add tests, and preview it.
+`Module.frame` picks the layout; a module that draws its own way overrides `page_frame` (the clock) or
+sets `supports_layouts = False` (the panel test).
 
 ## Working rules
 

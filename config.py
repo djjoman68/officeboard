@@ -14,12 +14,14 @@ SEC_PATH = os.path.join(BASE_DIR, "config", "secrets.json")
 
 PANEL_TYPES = ("", "FM6126A", "FM6127")
 RGB_SEQUENCES = ("RGB", "RBG", "GRB", "GBR", "BRG", "BGR")
+LAYOUTS = ("pages", "roll", "ticker", "split")       # same list as core/layouts.py
 
 DEFAULT_DISPLAY = {
     "brightness": 80,             # %
     "fps": 50,                    # frames per second; scrolling needs 30+ to look smooth
     "page_seconds": 5,            # how long each page shows when a module has several
     "scroll_speed": 24,           # pixels per second for scrolling text
+    "layout": "pages",            # pages, roll, ticker or split (see core/layouts.py); modules can differ
     "gpio_slowdown": 2,           # 2 for a Pi 3A+
     "hat_pwm_enabled": False,     # Bonnet PWM solder bridge installed
     "led_rgb_sequence": "RGB",
@@ -50,6 +52,8 @@ def normalize_display(raw):
     d["hat_pwm_enabled"] = bool(d["hat_pwm_enabled"])
     if d["led_rgb_sequence"] not in RGB_SEQUENCES:
         d["led_rgb_sequence"] = "RGB"
+    if d["layout"] not in LAYOUTS:
+        d["layout"] = "pages"
     if d["panel_type"] not in PANEL_TYPES:
         d["panel_type"] = ""
     return {k: d[k] for k in DEFAULT_DISPLAY}

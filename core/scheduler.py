@@ -19,6 +19,15 @@ def _ask(module, method, now):
         return False
 
 
+def _turn_length(module, now):
+    """A module's turn length, stretched to fit its pages or scrolling text (see Module.turn_length)."""
+    try:
+        return module.turn_length(now)
+    except Exception as e:
+        log.warning("%s.turn_length failed: %s", module.id, e)
+        return module.settings["seconds"]
+
+
 class Scheduler:
     def __init__(self):
         self.current = None        # id of the module on the panel
@@ -39,7 +48,8 @@ class Scheduler:
         cur = next((m for m in live if m.id == self.current), None)
         if cur is not None:
             elapsed = mono - self.started
-            if elapsed < cur.settings["seconds"] or len(live) == 1 or _ask(cur, "hold", now):
+            if (elapsed < cur.settings["seconds"] or len(live) == 1 or _ask(cur, "hold", now)
+                    or elapsed < _turn_length(cur, now)):
                 return cur, elapsed
         return self._show(self._after(modules, live), mono)
 

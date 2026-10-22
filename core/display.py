@@ -94,6 +94,7 @@ class Display:
         self.matrix = matrix or make_matrix(cfg["display"])
         self.canvas = self.matrix.CreateFrameCanvas()
         self.modules = registry.build(self.board)
+        self.board.status_bar = self.modules["clock"].status_bar      # the split layout's top bar
         self.order = []
         self.scheduler = Scheduler()
         self.current = None

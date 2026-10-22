@@ -149,6 +149,16 @@ Each step ends with a preview (image or GIF) for Joe to approve.
      The sleep screen is a centred clock (orange by day, blue at night) with the date in gray.
    - Clock & weather is on by default and first in the rotation; the Panel test stays on too.
 3. **Scroll experiment**: GIF previews of layouts A-D, then the real panel. Joe picks.
+   **Built Oct 22 2026; waiting for Joe's pick.** All four layouts work for every module (board setting
+   under Settings → Display → Layout, or per module on the Modules page; default stays Pages until Joe
+   picks). `tools/compare_layouts.py` makes the GIFs. A "Scroll demo" module (made-up stocks, a race,
+   games; off by default) gives the layouts realistic content until the real modules exist. Details:
+   - Full ticker: 8x13 font, about 8 characters on screen, module name small and dim above the line.
+   - Split: 9-row top bar (time left, temperature right) and a 6x13 line underneath, about 10 characters.
+   - Roll: each page slides up into place in half a second.
+   - A module's turn stretches so every page shows once, or its text scrolls all the way past once.
+     At 24 pixels a second that makes scrolling turns long: the demo takes 81s as a full ticker and 61s
+     split, against 40s as pages; the clock 39s / 27s / 12s.
 4. **Stocks**.
 5. **NYRA**: rotation, hold near post, take over.
 6. **MLB + NFL** schedules and scores.

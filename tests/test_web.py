@@ -22,7 +22,7 @@ class TestModulesPage(TempFiles):
     def test_lists_every_module_in_order_with_its_form(self):
         mods = self.c.get("/api/modules").get_json()["modules"]
         ids = [m["id"] for m in mods]
-        self.assertEqual(ids, ["clock", "stocks", "nyra", "mlb", "nfl", "paneltest"])
+        self.assertEqual(ids, ["clock", "stocks", "nyra", "mlb", "nfl", "demo", "paneltest"])
         pt = mods[-1]
         self.assertTrue(pt["built"] and pt["settings"]["enabled"])
         self.assertIn("message", [f["key"] for f in pt["fields"]])
@@ -36,7 +36,7 @@ class TestModulesPage(TempFiles):
         self.c.post("/api/modules", json={"settings": {"paneltest": {"message": "HELLO", "seconds": 30}}})
         saved = config.load()["modules"]
         self.assertEqual(saved["order"][:2], ["paneltest", "clock"])
-        self.assertEqual(len(saved["order"]), 6)
+        self.assertEqual(len(saved["order"]), 7)
         self.assertEqual((saved["paneltest"]["message"], saved["paneltest"]["seconds"]), ("HELLO", 30))
         self.assertFalse(saved["paneltest"]["enabled"])             # earlier change kept
 

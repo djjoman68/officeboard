@@ -34,6 +34,7 @@ See **[SETUP.md](SETUP.md)**: blank SD card to running board, step by step.
 
     python tools/dev.py        # whole board with a pretend panel: http://localhost:8080
     python tools/preview.py    # writes preview.gif, an LED-style animation of the panel
+    python tools/compare_layouts.py   # previews/: one GIF per layout (ticker, split, roll, pages)
     python -m unittest discover tests
 
 ## Project layout
@@ -48,6 +49,7 @@ See **[SETUP.md](SETUP.md)**: blank SD card to running board, step by step.
 | `core/module.py` | What every module is made of: fetcher, pages / ticker, settings |
 | `core/registry.py` | The list of modules |
 | `core/pixels.py` | Drawing: pixel fonts, scrolling, LED-style pictures |
+| `core/layouts.py` | The four layouts: pages, roll, full ticker, split |
 | `modules/` | The modules |
 | `web/` | Web UI |
 | `tools/` | Preview and try-it-on-a-computer tools |

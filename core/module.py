@@ -16,7 +16,7 @@ import threading
 from datetime import datetime
 
 import config
-from core import pixels
+from core import layouts, pixels
 
 log = logging.getLogger("module")
 
@@ -32,6 +32,19 @@ class BoardInfo:
         self.display = display or config.normalize_display({})
         self.location = location or config.normalize_location({})
         self.fps = 0.0
+        self.status_bar = None        # set by the display: draws the split layout's top bar
+
+    def top_bar(self, now):
+        """The split layout's top bar (64x9): the clock module's time and temperature when there is
+        one, else just the time."""
+        if self.status_bar:
+            try:
+                return self.status_bar(now)
+            except Exception:
+                log.exception("top bar failed")
+        img = pixels.Image.new("RGB", (pixels.WIDTH, layouts.BAR_HEIGHT), pixels.BLACK)
+        pixels.draw_text(img, "small", 1, 7, pixels.GRAY, f"{now.hour % 12 or 12}:{now.minute:02d}")
+        return img
 
 
 def normalize_field(field, value):
@@ -66,6 +79,7 @@ class Module:
     default_seconds = 15
     fetch_seconds = None      # None: no background fetching
     fields = []               # the module's own settings, see normalize_field for types
+    supports_layouts = True   # False for modules that draw their own way (the panel test)
 
     def __init__(self, board=None):
         self.board = board or BoardInfo()
@@ -79,11 +93,17 @@ class Module:
     # ---------- settings ----------
     @classmethod
     def all_fields(cls):
-        return [
+        common = [
             {"key": "enabled", "label": "On", "type": "bool", "default": cls.default_enabled},
             {"key": "seconds", "label": "Turn length (seconds)", "type": "int",
-             "default": cls.default_seconds, "min": 3, "max": 600},
-        ] + list(cls.fields)
+             "default": cls.default_seconds, "min": 3, "max": 600,
+             "hint": "At least long enough to show every page, or scroll everything past once."},
+        ]
+        if cls.supports_layouts:
+            common.append({"key": "layout", "label": "Layout", "type": "select", "default": "board",
+                           "options": [["board", "Same as the board (Settings)"]] +
+                                      [[k, layouts.LAYOUT_NAMES[k]] for k in layouts.LAYOUTS]})
+        return common + list(cls.fields)
 
     @classmethod
     def normalize(cls, raw):
@@ -139,13 +159,61 @@ class Module:
         """Text pieces for scrolling layouts: a list of [(text, colour), ...] per item. From step 3."""
         return []
 
+    def layout(self):
+        """Which of the four layouts this module uses: its own setting, or the board's."""
+        if not self.supports_layouts:
+            return "pages"
+        own = self.settings.get("layout", "board")
+        return self.board.display["layout"] if own == "board" else own
+
     def frame(self, now, t):
-        """The picture `t` seconds into this module's turn. Pages flip every page_seconds,
-        always starting from the first page."""
+        """The picture `t` seconds into this module's turn, in its layout. Scrolling layouts fall back
+        to pages for a module with no ticker text."""
+        lay = self.layout()
+        if lay in ("ticker", "split"):
+            strip = self._ticker_strip(now, lay)
+            if strip is not None:
+                speed = self.board.display["scroll_speed"]
+                if lay == "ticker":
+                    return layouts.ticker(strip, t, speed, label=self.name)
+                return layouts.split(self.board.top_bar(now), strip, t, speed)
+        if lay == "roll":
+            return layouts.roll(self.pages(now), t, self.board.display["page_seconds"])
+        return self.page_frame(now, t)
+
+    def page_frame(self, now, t):
+        """Pages layout: flip every page_seconds, always starting from the first page."""
         pages = self.pages(now)
         if not pages:
             return pixels.blank()
         return pages[int(t // self.board.display["page_seconds"]) % len(pages)]
+
+    def _ticker_strip(self, now, lay):
+        """The module's ticker items drawn as one long strip, redrawn only when the text changes."""
+        items = self.ticker_items(now)
+        if not items:
+            return None
+        if lay == "ticker":
+            font, height = layouts.TICKER_FONT, layouts.TICKER_HEIGHT
+        else:
+            font, height = layouts.SPLIT_FONT, layouts.SPLIT_HEIGHT
+        key = (repr(items), font)
+        if getattr(self, "_strip_cache", (None,))[0] != key:
+            self._strip_cache = (key, pixels.text_strip(font, layouts.join_items(items), height))
+        return self._strip_cache[1]
+
+    def turn_length(self, now):
+        """How long this module's turn lasts: its "seconds" setting, stretched so every page shows once
+        or the scrolling text goes all the way past once."""
+        base = self.settings["seconds"]
+        lay = self.layout()
+        if lay in ("ticker", "split"):
+            strip = self._ticker_strip(now, lay)
+            if strip is not None:
+                return max(base, layouts.pass_seconds(strip.width, self.board.display["scroll_speed"]))
+        if self.supports_layouts:
+            return max(base, len(self.pages(now)) * self.board.display["page_seconds"])
+        return base
 
     def hold(self, now):
         """True keeps the panel past the end of the turn (NYRA near post time)."""
