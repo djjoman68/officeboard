@@ -78,7 +78,7 @@ class TestSettingsPage(TempFiles):
         r = self.c.get("/board.png")
         self.assertEqual((r.status_code, r.mimetype), (200, "image/png"))
         s = self.c.get("/api/status").get_json()["status"]
-        self.assertEqual(s["module"], "paneltest")
+        self.assertEqual(s["module"], "clock")
 
 
 class TestShutdownButton(unittest.TestCase):

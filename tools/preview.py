@@ -1,10 +1,12 @@
-"""Make an LED-style animated picture of the board, no panel needed.
+"""Make LED-style pictures of the board, no panel needed.
 
-    python3 tools/preview.py                 # 20 seconds of the rotation with today's settings
+    python3 tools/preview.py                 # 30 seconds of the rotation with today's settings
     python3 tools/preview.py 8               # or any number of seconds
 
-Runs the real display loop on the stand-in panel with simulated time and writes preview.gif
-(animated, for scrolling) and preview.png (the first frame) in the current folder.
+Runs the real display loop on the stand-in panel with simulated time, and writes:
+  preview.gif   animated, for scrolling and page changes
+  preview.png   a sheet of each screen: clock & weather, sunrise/sunset, an alert, sleep mode, panel test
+The clock uses made-up sample weather unless the board has fetched real weather.
 """
 import os
 import sys
@@ -12,23 +14,47 @@ from datetime import datetime, timedelta
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "fakes"))
+sys.path.insert(0, os.path.join(ROOT, "tests"))
 sys.path.insert(0, ROOT)
+from PIL import Image, ImageDraw               # noqa: E402
 from rgbmatrix import RGBMatrix               # noqa: E402  (the stand-in)
 from core.display import Display              # noqa: E402
 from core.pixels import led_preview           # noqa: E402
+from test_clock import sample_data            # noqa: E402
 
 GIF_FPS = 25        # GIFs can't go much faster; the panel itself runs at the fps setting
 DOT = 6
 
-seconds = float(sys.argv[1]) if len(sys.argv) > 1 else 20
+seconds = float(sys.argv[1]) if len(sys.argv) > 1 else 30
 d = Display(matrix=RGBMatrix(), start_fetchers=False)
 d.board.fps = d.board.display["fps"]          # show the target rate in the panel test
-start = datetime.now()
+clock = d.modules["clock"]
+start = datetime.now().replace(second=0, microsecond=0)
+if not clock.data:
+    clock.data = sample_data(start)
+d.sleep_cfg = dict(d.sleep_cfg, enabled=False, override=None)    # the animation shows the rotation
+
 frames = []
 for i in range(int(seconds * GIF_FPS)):
     t = i / GIF_FPS
     frames.append(led_preview(d.step(start + timedelta(seconds=t), mono=t), dot=DOT))
-
-frames[0].save("preview.png")
 frames[0].save("preview.gif", save_all=True, append_images=frames[1:], duration=1000 // GIF_FPS, loop=0)
-print(f"Wrote preview.gif ({len(frames)} frames, {seconds:g}s) and preview.png")
+
+# One picture of each screen
+data = clock.data
+screens = [("Clock & weather", clock.draw(start, "forecast")),
+           ("Sunrise & sunset (end of each turn)", clock.draw(start, "sun")),
+           ("Severe weather alert", clock.draw(start, "forecast", {"text": "TSTM WRN", "color": "orange"})),
+           ("Sleep mode", clock.sleep_frame(start)),
+           ("Panel test", d.modules["paneltest"].frame(start, 2.5))]
+pad, cap = 16, 22
+tiles = [(title, led_preview(img, dot=DOT)) for title, img in screens]
+w = tiles[0][1].width + 2 * pad
+sheet = Image.new("RGB", (w, sum(t.height + cap + pad for _, t in tiles) + pad), (245, 245, 245))
+draw, y = ImageDraw.Draw(sheet), pad
+for title, tile in tiles:
+    draw.text((pad, y + 5), title, fill=(30, 30, 30))
+    sheet.paste(tile, (pad, y + cap))
+    y += tile.height + cap + pad
+sheet.save("preview.png")
+print(f"Wrote preview.gif ({len(frames)} frames, {seconds:g}s) and preview.png ({len(screens)} screens)")

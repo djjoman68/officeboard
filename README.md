@@ -12,15 +12,18 @@ modules you turn on and off from a web page:
 It also tests scrolling text against static pages, to see which reads better on a small panel.
 A sleep mode shows just the clock and date at a dimmer brightness on a schedule.
 
-**Status:** foundation built (Oct 2026): module system, smooth-scrolling display loop, web UI with a
-Modules page, and a Panel test module. The data modules come next. See [docs/plan.md](docs/plan.md).
+**Status (Oct 2026):** foundation, Clock & weather module and sleep mode built. Stocks, NYRA, MLB and
+NFL come next. See [docs/plan.md](docs/plan.md).
+
+![The panel's screens: clock & weather, sunrise and sunset, a weather alert, sleep mode, panel test](docs/screenshots/panel-screens.png)
 
 ## Web UI
 
 `http://officeboard.local:8080`
-- **Board**: live picture of the panel and which modules are in rotation
+- **Board**: live picture of the panel, Sleep now / Wake now, and which modules are in rotation
 - **Modules**: turn each module on or off, change the order, and edit its settings
-- **Settings**: brightness, page flip, scroll speed, panel hardware, Wi-Fi, restart and shut down
+- **Settings**: weather location and key, clock format, sleep schedule, brightness, scroll speed,
+  panel hardware, Wi-Fi, restart and shut down
 - **Logs**: recent service output
 
 ## Install
@@ -61,7 +64,8 @@ built on the plane tracker by **c0wsaysmoo**
 ([plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-tracker-rgb-pi)), based on
 **Colin Waddell's** [FlightTracker](https://github.com/ColinWaddell/FlightTracker).
 
-The pixel fonts, web UI, installer and Wi-Fi settings come from those projects; files copied from
+The pixel fonts, weather icons, clock & weather layout, weather alerts, web UI, installer and Wi-Fi
+settings come from those projects; files copied from
 them say so at the top.
 
 Panel driver: [hzeller/rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix), installed
@@ -70,4 +74,5 @@ separately during setup.
 Released under the **GNU General Public License v3.0**, the same license as FlightTracker.
 See [LICENSE](LICENSE).
 
-Race data is read from nyra.com for personal, non-commercial display.
+Weather from Tomorrow.io and the National Weather Service. Race data is read from nyra.com for
+personal, non-commercial display. Screenshots use made-up sample weather.

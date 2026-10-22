@@ -3,10 +3,11 @@
 To add a module: write it in modules/, then list it in MODULE_CLASSES (replacing its planned stand-in).
 """
 import config
+from modules.clock import ClockWeather
 from modules.paneltest import PanelTest
-from modules.planned import Clock, Mlb, Nfl, Nyra, Stocks
+from modules.planned import Mlb, Nfl, Nyra, Stocks
 
-MODULE_CLASSES = [Clock, Stocks, Nyra, Mlb, Nfl, PanelTest]
+MODULE_CLASSES = [ClockWeather, Stocks, Nyra, Mlb, Nfl, PanelTest]
 BY_ID = {cls.id: cls for cls in MODULE_CLASSES}
 DEFAULT_ORDER = [cls.id for cls in MODULE_CLASSES]
 
@@ -25,10 +26,9 @@ def modules_config(raw):
 
 def full_config(raw=None):
     raw = config.load() if raw is None else raw
-    return {
-        "display": config.normalize_display(raw.get("display")),
-        "modules": modules_config(raw.get("modules")),
-    }
+    out = {name: normalize(raw.get(name)) for name, normalize in config.SECTIONS.items()}
+    out["modules"] = modules_config(raw.get("modules"))
+    return out
 
 
 def build(board):

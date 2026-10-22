@@ -25,10 +25,12 @@ LIST_MAX = 50
 
 
 class BoardInfo:
-    """What a module may want to know about the board: display settings and the measured frame rate."""
+    """What a module may want to know about the board: display and location settings, and the
+    measured frame rate."""
 
-    def __init__(self, display=None):
+    def __init__(self, display=None, location=None):
         self.display = display or config.normalize_display({})
+        self.location = location or config.normalize_location({})
         self.fps = 0.0
 
 
@@ -71,6 +73,7 @@ class Module:
         self.data = None
         self.last_update = None
         self.last_error = None
+        self.warning = None
         self.wake = threading.Event()
 
     # ---------- settings ----------
@@ -112,12 +115,15 @@ class Module:
     def refresh(self, now=None):
         """Fetch once, keeping the last good data if it fails."""
         now = now or datetime.now()
+        self.warning = None
         try:
             self.data = self.fetch(now)
             self.last_update = now
-            self.last_error = None
+            self.last_error = self.warning     # a fetch that partly failed can say so here
         except Exception as e:
-            self.last_error = f"{type(e).__name__}: {e}"
+            # Modules raise ValueError/RuntimeError with a plain-language message; show other errors' type too
+            plain = isinstance(e, (ValueError, RuntimeError)) and str(e)
+            self.last_error = str(e) if plain else f"{type(e).__name__}: {e}"
             log.warning("%s: fetch failed: %s", self.id, self.last_error)
 
     # ---------- renderer ----------

@@ -118,8 +118,11 @@ Optional: turn the extra memory back off to spare the SD card:
 ## 7. First look
 
 Open **http://officeboard.local:8080** on your phone or computer.
-- The panel shows the **Panel test**: eight colour bars (red, green, blue, white, yellow, cyan,
-  magenta, gray) and scrolling text with the frame rate.
+- **Settings -> Location & time**: weather location (lat,lon) and a **Tomorrow.io** key (free at
+  tomorrow.io; a separate key from the odds board's), then Save. Weather appears within a minute.
+- **Settings -> Sleep mode**: set the hours (and any all-day days) and the sleep brightness.
+- The panel takes turns between **Clock & weather** and the **Panel test**: eight colour bars (red,
+  green, blue, white, yellow, cyan, magenta, gray) and scrolling text with the frame rate.
 - If you needed FM6126A in step 5: **Settings -> Panel driver chip -> FM6126A**, Save, Restart display.
 - Check every bar shows its colour and no rows are dark. Wrong colours: Settings -> LED color order.
 - **Modules** lists everything planned. Modules arrive as they're built; turn them on there.

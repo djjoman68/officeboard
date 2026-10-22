@@ -20,6 +20,18 @@
   </div>
 
   <div class="section">
+    <div class="section-header">Sleep</div>
+    <div class="section-body single">
+      <div class="sleep-row">
+        <div class="stat" id="sleep-state">…</div>
+        <button class="btn btn-reset btn-small" id="sleep-btn" type="button" hidden></button>
+        <button class="btn btn-reset btn-small" id="sleep-cancel" type="button" hidden>Back to schedule</button>
+      </div>
+      <div class="hint">Schedule and sleep brightness are under <a href="/config">Settings</a>.</div>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-header">Rotation</div>
     <div class="section-body single"><div id="rotation" class="stat">Loading…</div>
       <div class="hint">Turn modules on and off, reorder them and change their settings on the <a href="/modules">Modules</a> page.</div>
@@ -63,10 +75,16 @@ async function refresh() {
       return;
     }
     showFrame();
-    el("ticker").textContent = s.module_name ? `Showing ${s.module_name}` : "No modules are on";
-    el("details").innerHTML = s.module_name
-      ? `<b>${esc(s.module_name)}</b> · ${Math.floor(s.turn_seconds)}s into its turn · ${s.fps} frames a second`
-      : `Nothing to show. Turn a module on from the <a href="/modules">Modules</a> page.`;
+    renderSleep(s);
+    if (s.asleep) {
+      el("ticker").textContent = "Asleep: showing the time and date";
+      el("details").innerHTML = `<b>Asleep</b>${s.sleep_until ? " until " + fmtWhen(s.sleep_until) : ""} · ${s.fps} frames a second`;
+    } else {
+      el("ticker").textContent = s.module_name ? `Showing ${s.module_name}` : "No modules are on";
+      el("details").innerHTML = s.module_name
+        ? `<b>${esc(s.module_name)}</b> · ${Math.floor(s.turn_seconds)}s into its turn · ${s.fps} frames a second`
+        : `Nothing to show. Turn a module on from the <a href="/modules">Modules</a> page.`;
+    }
     const mods = await (await fetch("/api/modules")).json();
     el("rotation").innerHTML = mods.modules.filter(m => m.built).map(m => {
       const st = m.status || {};
@@ -80,6 +98,33 @@ async function refresh() {
     el("ticker").textContent = "Can't reach the board";
   }
 }
+
+// "2026-10-22T18:00" -> "6:00 PM" today, or "Sat 6:00 PM" another day
+function fmtWhen(iso) {
+  const d = new Date(iso), now = new Date();
+  const time = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  return d.toDateString() === now.toDateString() ? time : d.toLocaleDateString([], {weekday: "short"}) + " " + time;
+}
+
+function renderSleep(s) {
+  const until = s.sleep_until ? ` until ${fmtWhen(s.sleep_until)}` : "";
+  const why = s.sleep_override ? " (button)" : "";
+  el("sleep-state").innerHTML = `<b>${s.asleep ? "Asleep" : "Awake"}</b>${until}${why}`;
+  const btn = el("sleep-btn");
+  btn.hidden = false;
+  btn.textContent = s.asleep ? "Wake now" : "Sleep now";
+  btn.dataset.action = s.asleep ? "wake" : "sleep";
+  el("sleep-cancel").hidden = !s.sleep_override;
+}
+
+async function sleepAction(action) {
+  try {
+    await fetch("/api/sleep", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({action})});
+  } catch (e) {}
+  setTimeout(refresh, 1500);
+}
+el("sleep-btn").onclick = () => sleepAction(el("sleep-btn").dataset.action);
+el("sleep-cancel").onclick = () => sleepAction("schedule");
 
 async function refreshSystem() {
   try {

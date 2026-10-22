@@ -169,6 +169,8 @@ class TestPixels(unittest.TestCase):
 
 class TestDisplayLoop(TempFiles):
     def make(self):
+        """The board with only the panel test on, so frames are predictable."""
+        config.save({"modules": {"clock": {"enabled": False}}})
         return Display(matrix=RGBMatrix(), start_fetchers=False)
 
     def test_panel_test_reaches_the_panel(self):
@@ -195,10 +197,10 @@ class TestDisplayLoop(TempFiles):
     def test_settings_change_applies_without_restart(self):
         d = self.make()
         d._config_mtime = None
-        config.save({"display": {"brightness": 40}, "modules": {"paneltest": {"enabled": False}}})
+        config.save({"display": {"brightness": 40}, "modules": {"paneltest": {"enabled": False}, "clock": {"enabled": False}}})
         d.check_config()
-        self.assertEqual(d.matrix.brightness, 40)
         d.step(NOW, 0.0)
+        self.assertEqual(d.matrix.brightness, 40)
         self.assertIsNone(d.current)
 
     def test_drawing_error_shows_a_message_and_is_reported(self):
@@ -219,6 +221,7 @@ class TestDisplayLoop(TempFiles):
         self.assertEqual((s["module"], s["module_name"]), ("paneltest", "Panel test"))
         self.assertTrue(s["modules"]["paneltest"]["has_content"])
         self.assertFalse(s["modules"]["stocks"]["has_content"])
+        self.assertFalse(s["asleep"])
         self.assertTrue(os.path.exists(disp.FRAME_FILE))
 
 

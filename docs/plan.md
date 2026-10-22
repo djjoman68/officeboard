@@ -135,6 +135,19 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    checking the P3 panel. Reordering uses up/down buttons rather than drag (works the same on a phone).
    Web UI has a plain placeholder look; its style is Joe's call later.
 2. **Clock/weather module**: proves the framework; includes sleep mode.
+   **Done Oct 22 2026.** Same layout and colours as itsposttime's clock & weather screen, same sources
+   (Tomorrow.io: current every 10 min, forecast hourly; NWS alerts every 10 min), and weather saved to disk
+   so it shows straight after a restart. Choices made while building, open to change:
+   - Sunrise/sunset show for the last 6 seconds of each clock turn (adjustable, 0 = off), replacing the
+     forecast, instead of itsposttime's last 15 seconds of every minute (turns are shorter than a minute).
+   - Location, units, clock format, Tomorrow.io key and alerts are board-wide Settings, since other
+     modules (games, races) show times too. A separate free Tomorrow.io key from the odds board's is
+     suggested.
+   - itsposttime's hourly forecast mode wasn't carried over (daily only).
+   - Sleep: "asleep all day on" chosen days, on top of the nightly window. Sleep now / Wake now last
+     until the schedule's next change, or a day when there's no schedule; "Back to schedule" cancels.
+     The sleep screen is a centred clock (orange by day, blue at night) with the date in gray.
+   - Clock & weather is on by default and first in the rotation; the Panel test stays on too.
 3. **Scroll experiment**: GIF previews of layouts A-D, then the real panel. Joe picks.
 4. **Stocks**.
 5. **NYRA**: rotation, hold near post, take over.

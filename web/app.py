@@ -17,7 +17,7 @@ from flask import Flask, jsonify, render_template, request, send_file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 import config  # noqa: E402
-from core import registry  # noqa: E402
+from core import registry, sleep  # noqa: E402
 from core.pixels import led_preview  # noqa: E402
 from web import wifi  # noqa: E402
 
@@ -117,7 +117,8 @@ def modules_save():
 @app.get("/api/config")
 def config_get():
     sec = config.load_secrets()
-    return jsonify({"config": {"display": registry.full_config()["display"]},
+    full = registry.full_config()
+    return jsonify({"config": {name: full[name] for name in config.SECTIONS},
                     "secrets": {k: _mask(v) for k, v in sec.items()}})
 
 
@@ -125,9 +126,12 @@ def config_get():
 def config_save():
     data = request.get_json(force=True) or {}
     try:
-        if isinstance((data.get("config") or {}).get("display"), dict):
+        sent = data.get("config") or {}
+        if any(isinstance(sent.get(name), dict) for name in config.SECTIONS):
             raw = config.load()
-            raw["display"] = config.normalize_display({**raw.get("display", {}), **data["config"]["display"]})
+            for name, normalize in config.SECTIONS.items():
+                if isinstance(sent.get(name), dict):
+                    raw[name] = normalize({**raw.get(name, {}), **sent[name]})
             config.save(raw)
         if isinstance(data.get("secrets"), dict):
             existing = config.load_secrets()
@@ -139,6 +143,21 @@ def config_save():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
     return jsonify({"ok": True})
+
+
+@app.post("/api/sleep")
+def sleep_now():
+    """Board page buttons. Body: {"action": "sleep" | "wake" | "schedule"}. Lasts until the schedule's
+    next change (a day without a schedule); "schedule" cancels it."""
+    from datetime import datetime
+    action = (request.get_json(force=True) or {}).get("action")
+    raw = config.load()
+    raw["sleep"] = config.normalize_sleep(sleep.override(datetime.now(), config.normalize_sleep(raw.get("sleep")), action))
+    try:
+        config.save(raw)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({"ok": True, "sleep": raw["sleep"]})
 
 
 def _sudo_allowed(cmd):

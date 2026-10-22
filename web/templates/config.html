@@ -7,8 +7,49 @@
 </head>
 <body>
 {% set page = 'config' %}{% include '_header.html' %}
-<div class="ticker">Display settings apply within seconds · Panel hardware settings apply after Restart</div>
+<div class="ticker">Settings apply within seconds · Panel hardware settings apply after Restart</div>
 <div class="content">
+
+  <div class="section">
+    <div class="section-header">Location &amp; time</div>
+    <div class="section-body">
+      <div class="field"><label for="l-loc">Weather location (lat,lon)</label>
+        <input id="l-loc" type="text" placeholder="40.72,-73.70" data-path="config.location.weather_location">
+        <span class="hint">Tip: right-click a spot in Google Maps to copy its coordinates.</span></div>
+      <div class="field"><label for="l-key">Tomorrow.io API key</label>
+        <input id="l-key" type="text" data-path="secrets.tomorrow_api_key" autocomplete="off">
+        <span class="hint">Free key from tomorrow.io. A separate key from the odds board's keeps each well
+          inside the free limit.</span></div>
+      <div class="field"><label for="l-units">Temperature units</label>
+        <select id="l-units" data-path="config.location.units"><option value="imperial">°F</option><option value="metric">°C</option></select></div>
+      <div class="field"><label for="l-clock">Clock format</label>
+        <select id="l-clock" data-path="config.location.clock_format"><option value="12hr">12-hour</option><option value="24hr">24-hour</option></select>
+        <span class="hint">Used for every time on the panel.</span></div>
+      <div class="field checkbox"><input type="checkbox" id="nws" data-path="config.location.weather_alerts"><label for="nws">Show severe weather alerts (National Weather Service, US only)</label></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Sleep mode</div>
+    <div class="section-body">
+      <div class="field checkbox"><input type="checkbox" id="s-on" data-path="config.sleep.enabled"><label for="s-on">Sleep on a schedule</label></div>
+      <div class="field"><label for="s-bright">Sleep brightness (%)</label>
+        <input id="s-bright" type="number" min="0" max="100" data-path="config.sleep.brightness" data-type="int">
+        <span class="hint">While asleep the panel shows only the time and date. 0 turns it off.</span></div>
+      <div class="field"><label for="s-start">Sleep from</label><input id="s-start" type="time" data-path="config.sleep.start"></div>
+      <div class="field"><label for="s-end">Wake at</label><input id="s-end" type="time" data-path="config.sleep.end">
+        <span class="hint">Earlier than "Sleep from" means the next morning.</span></div>
+      <div class="field days-field"><label>Asleep all day on</label>
+        <div class="days" data-path="config.sleep.all_day" data-type="days">
+          <label><input type="checkbox" value="mon">Mon</label><label><input type="checkbox" value="tue">Tue</label>
+          <label><input type="checkbox" value="wed">Wed</label><label><input type="checkbox" value="thu">Thu</label>
+          <label><input type="checkbox" value="fri">Fri</label><label><input type="checkbox" value="sat">Sat</label>
+          <label><input type="checkbox" value="sun">Sun</label>
+        </div>
+        <span class="hint">For example, Sat and Sun keeps the board asleep all weekend. The Board page also has
+          Sleep now and Wake now buttons.</span></div>
+    </div>
+  </div>
 
   <div class="section">
     <div class="section-header">Display</div>
@@ -94,14 +135,16 @@ async function load() {
   const d = await (await fetch("/api/config")).json();
   fields.forEach(f => {
     const v = get(d, f.dataset.path);
-    if (f.type === "checkbox") f.checked = !!v; else if (v != null) f.value = v;
+    if (f.dataset.type === "days") f.querySelectorAll("input").forEach(b => { b.checked = (v || []).includes(b.value); });
+    else if (f.type === "checkbox") f.checked = !!v; else if (v != null) f.value = v;
   });
 }
 
 document.getElementById("save").onclick = async () => {
   const body = {};
   fields.forEach(f => {
-    let v = f.type === "checkbox" ? f.checked : f.value;
+    let v = f.dataset.type === "days" ? [...f.querySelectorAll("input:checked")].map(b => b.value)
+          : f.type === "checkbox" ? f.checked : f.value;
     if (f.dataset.type === "int") v = parseInt(v, 10);
     set(body, f.dataset.path, v);
   });

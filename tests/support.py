@@ -13,6 +13,7 @@ sys.path.insert(0, ROOT)
 
 import config            # noqa: E402
 from core import display  # noqa: E402
+from modules import clock  # noqa: E402
 
 
 class TempFiles(unittest.TestCase):
@@ -25,6 +26,8 @@ class TempFiles(unittest.TestCase):
         config.SEC_PATH = os.path.join(self.tmp, "secrets.json")
         display.STATUS_FILE = os.path.join(self.tmp, "status.json")
         display.FRAME_FILE = os.path.join(self.tmp, "board.png")
+        self._saved_cache = clock.CACHE_FILE
+        clock.CACHE_FILE = os.path.join(self.tmp, "weather.json")
         try:
             from web import app as web
             self.web = web
@@ -35,6 +38,7 @@ class TempFiles(unittest.TestCase):
 
     def tearDown(self):
         config.CFG_PATH, config.SEC_PATH, display.STATUS_FILE, display.FRAME_FILE = self._saved
+        clock.CACHE_FILE = self._saved_cache
         if self.web:
             self.web.STATUS_FILE, self.web.FRAME_FILE = self._saved_web
         shutil.rmtree(self.tmp, ignore_errors=True)

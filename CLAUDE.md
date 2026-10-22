@@ -29,7 +29,8 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 - Oct 22 2026: plan agreed (`docs/plan.md`). Repo created.
 - Oct 22 2026: step 1 (foundation) built and tested offline: module system, scheduler, 50 fps display
   loop, web UI (Board, Modules, Settings, Logs), installer, Panel test module. Not yet run on the Pi.
-  Next: step 2 (clock & weather module, sleep mode).
+- Oct 22 2026: step 2 built and tested offline: Clock & weather module (itsposttime's layout and
+  sources), sleep mode (schedule, all-day days, Sleep now / Wake now). Next: step 3 (scroll experiment).
 - Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
 
 ## Layout
@@ -37,12 +38,15 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | Path | Role |
 |---|---|
 | `officeboard.py` | Entry point; single-instance lock (/tmp/officeboard.lock); starts web UI subprocess |
-| `config.py` | Board-wide display settings, JSON load/save (config/config.json + secrets.json) |
+| `config.py` | Board-wide settings (display, location, sleep), JSON load/save (config/config.json + secrets.json) |
 | `core/module.py` | `Module` base class (fetch, pages, ticker_items, frame, hold, takeover, fields) and `Fetcher` thread |
 | `core/registry.py` | `MODULE_CLASSES` list; merges every module's settings; planned modules can't be enabled |
 | `core/scheduler.py` | Rotation: order, turn length, skip modules with nothing to show, hold, take-over. Pure logic |
 | `core/display.py` | Panel options + main loop at `fps`; only changed frames go to the panel; status + frame to /dev/shm/officeboard |
 | `core/pixels.py` | Pillow drawing with the .bdf fonts, `text_strip` + `marquee` for scrolling, `led_preview` |
+| `core/sleep.py` | Sleep schedule, all-day days, Sleep now / Wake now overrides. Pure logic |
+| `modules/clock.py` | Clock & weather: Tomorrow.io fetch + disk cache, itsposttime's layout, sun at end of turn, alerts, sleep screen |
+| `modules/nws.py` | Severe weather alerts (from itsposttime) |
 | `modules/paneltest.py` | Panel test module |
 | `modules/planned.py` | Stand-ins for modules not built yet (shown on the Modules page as "coming in step N") |
 | `web/` | Flask app on :8080. Modules page forms are built from each module's `fields` |

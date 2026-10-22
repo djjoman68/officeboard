@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 
 import config
-from core import pixels, registry
+from core import pixels, registry, sleep
 from core.module import BoardInfo, Fetcher
 from core.scheduler import Scheduler
 
@@ -35,6 +35,10 @@ def _atomic_write(path, write_fn):
     os.close(fd)
     write_fn(tmp)
     os.replace(tmp, path)
+
+
+def _iso(t):
+    return t.isoformat(timespec="minutes") if t else None
 
 
 def _write_text(path, text):
@@ -84,7 +88,9 @@ NOTHING_ON = message_frame(("NO MODULES ON", pixels.GRAY), ("SEE WEB PAGE", pixe
 class Display:
     def __init__(self, matrix=None, start_fetchers=True):
         cfg = registry.full_config()
-        self.board = BoardInfo(cfg["display"])
+        self.board = BoardInfo(cfg["display"], cfg["location"])
+        self.sleep_cfg = cfg["sleep"]
+        self.asleep = False
         self.matrix = matrix or make_matrix(cfg["display"])
         self.canvas = self.matrix.CreateFrameCanvas()
         self.modules = registry.build(self.board)
@@ -105,14 +111,25 @@ class Display:
 
     # ---------- settings ----------
     def apply_config(self, cfg):
-        """Settings that apply live: brightness, frame rate, paging, scroll speed, and every module's.
-        Panel hardware settings (GPIO slowdown, panel type, ...) need a restart."""
+        """Settings that apply live: brightness, frame rate, paging, scroll speed, location, sleep, and
+        every module's. Panel hardware settings (GPIO slowdown, panel type, ...) need a restart."""
+        location_changed = cfg["location"] != self.board.location
         self.board.display = cfg["display"]
+        self.board.location = cfg["location"]
+        self.sleep_cfg = cfg["sleep"]
         for mod_id, m in self.modules.items():
             m.configure(cfg["modules"][mod_id])
+            if location_changed and m.fetch_seconds:
+                m.wake.set()                 # new place or units: fetch again now
         self.order = [self.modules[i] for i in cfg["modules"]["order"]]
-        if self.matrix.brightness != cfg["display"]["brightness"]:
-            self.matrix.brightness = cfg["display"]["brightness"]
+
+    def _set_brightness(self):
+        if self.asleep:
+            wanted = max(1, self.sleep_cfg["brightness"])
+        else:
+            wanted = self.board.display["brightness"]
+        if self.matrix.brightness != wanted:
+            self.matrix.brightness = wanted
 
     def check_config(self):
         mtime = config.mtime()
@@ -124,9 +141,16 @@ class Display:
     def step(self, now=None, mono=None):
         now = now or datetime.now()
         mono = time.monotonic() if mono is None else mono
-        module, t = self.scheduler.pick(self.order, now, mono)
-        self.current, self.turn = module, t
-        img = NOTHING_ON if module is None else self._draw(module, now, t)
+        self.asleep = sleep.asleep(now, self.sleep_cfg)
+        self._set_brightness()
+        if self.asleep:
+            # Sleep beats everything, NYRA take-over included: time and date only, or nothing at 0%
+            self.current, self.turn = None, 0.0
+            img = self._sleep_frame(now)
+        else:
+            module, t = self.scheduler.pick(self.order, now, mono)
+            self.current, self.turn = module, t
+            img = NOTHING_ON if module is None else self._draw(module, now, t)
         data = img.tobytes()
         if data != self._last_bytes:
             self.canvas.SetImage(img)
@@ -134,6 +158,19 @@ class Display:
             self._last_bytes = data
             self.last_image = img
         return img
+
+    def _sleep_frame(self, now):
+        if self.sleep_cfg["brightness"] == 0:
+            return pixels.blank()
+        key = now.strftime("%Y-%m-%d %H:%M")
+        if getattr(self, "_sleep_key", None) != key:
+            try:
+                self._sleep_img = self.modules["clock"].sleep_frame(now)
+            except Exception:
+                log.exception("sleep screen failed")
+                self._sleep_img = pixels.blank()
+            self._sleep_key = key
+        return self._sleep_img
 
     def _draw(self, module, now, t):
         try:
@@ -158,6 +195,9 @@ class Display:
             "module_name": self.current.name if self.current else None,
             "turn_seconds": round(self.turn, 1),
             "fps": round(self.board.fps, 1),
+            "asleep": self.asleep,
+            "sleep_until": _iso(sleep.until(now, self.sleep_cfg)),
+            "sleep_override": sleep.active_override(now, self.sleep_cfg),
             "modules": {i: dict(m.status(), has_content=bool(m.enabled and self._has_content(m, now)))
                         for i, m in self.modules.items()},
             "written": now.isoformat(timespec="seconds"),
