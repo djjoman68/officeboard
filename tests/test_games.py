@@ -319,34 +319,48 @@ class TestTeamLook(support.TempFiles):
         self.assertGreater(upcoming.getpixel((6, 19))[0], 200)                 # CHI logo below
 
 
-class TestCompactOdds(unittest.TestCase):
-    """Odds sit on the team rows: the NFL spread on the favourite's row only, MLB moneylines on both. (Joe, Oct 22 2026)"""
+def texts(rows):
+    return {side: "".join(t for t, _ in pieces) for side, pieces in rows.items()}
 
-    def test_nfl_spread_per_team(self):
+
+class TestCompactOdds(unittest.TestCase):
+    """Odds sit on the team rows (Joe, Oct 22 2026): the NFL spread on the favourite's row only and the
+    total on the other row, right above or below it; MLB moneylines on both rows."""
+
+    def test_nfl_spread_and_total(self):
         m = module(Nfl, nfl_week())
         g = m.games(NOW)
-        self.assertEqual(m.row_odds(g[0]), {"home": "-3"})                         # CHI -3 at home: favourite only
-        self.assertEqual(m.row_odds(g[1]), {"away": "-2.5"})                       # SF -2.5 on the road
-        self.assertEqual(m.row_odds(g[2]), {"home": "PK"})                         # EVEN: once, home row
-        self.assertEqual(m.bottom_odds(g[0]), "50.5")
+        self.assertEqual(texts(m.row_odds(g[0])), {"home": "-3", "away": "o50.5"})    # CHI -3 at home, total above
+        self.assertEqual(texts(m.row_odds(g[1])), {"away": "-2.5", "home": "o49.5"})  # SF -2.5 on the road, total below
+        self.assertEqual(texts(m.row_odds(g[2])), {"home": "PK", "away": "o44"})      # EVEN: PK on the home row
 
     def test_mlb_moneyline_per_team(self):
         m = module(Mlb, mlb_day())
         g = next(x for x in m.games(NOW) if x["state"] == "pre")
-        self.assertEqual(m.row_odds(g), {"away": "+133", "home": "-161"})
-        self.assertIsNone(m.bottom_odds(g))
+        self.assertEqual(texts(m.row_odds(g)), {"away": "+133", "home": "-161"})
 
     def test_layout(self):
         m = module(Nfl, nfl_week())
         page = m.pages(NOW)[1]                                                  # SF @ ATL, Sunday
         self.assertIn(games.ODDS, colours(page.crop((40, 0, 64, 12))))          # SF -2.5 on the top row
-        self.assertNotIn(games.ODDS, colours(page.crop((40, 13, 64, 25))))      # nothing for ATL, the underdog
-        self.assertIn(games.TIME, colours(page.crop((0, 26, 30, 32))))          # SU 1p bottom left
-        self.assertIn(games.ODDS, colours(page.crop((44, 26, 64, 32))))         # the total bottom right
-        self.assertEqual(m.when(m.games(NOW)[1], NOW, short_day=True, compact=True), "SU 1p")
-        self.assertEqual(m.when(m.games(NOW)[2], NOW, short_day=True, compact=True), "SU 8:15p")
+        self.assertIn(games.ODDS, colours(page.crop((40, 13, 64, 25))))         # the total below it
+        bottom = page.crop((0, 26, 64, 32))
+        self.assertEqual(colours(bottom) - {(0, 0, 0)}, {games.TIME})          # bottom line: just the time
+        self.assertEqual(m.when(m.games(NOW)[1], NOW), "SUN 1:00p")
 
-    def test_unreadable_spread_shows_no_numbers(self):
+    def test_total_fits_beside_a_three_letter_team(self):
+        g = parse_scoreboard({"events": [event("JAX", "LAR", NOW + timedelta(days=3),
+                                               odds={"details": "LAR -10.5", "overUnder": 47.5})]})[0]
+        m = Nfl()
+        page = m.preview_page(g, NOW)
+        name_end = 2 + games.pixels.text_width("regular", "JAX")
+        total_start = 63 - games.pixels.text_width("small", "o47.5")
+        self.assertGreater(total_start - name_end, 2)
+        self.assertIsNotNone(page.crop((total_start, 0, 64, 12)).getbbox())
+
+    def test_unreadable_spread_shows_just_the_total(self):
+        g = parse_scoreboard({"events": [event("NE", "CHI", NOW, odds={"details": "OFF", "overUnder": 41})]})[0]
+        self.assertEqual(texts(Nfl().row_odds(g)), {"home": "o41"})
         g = parse_scoreboard({"events": [event("NE", "CHI", NOW, odds={"details": "OFF"})]})[0]
         self.assertEqual(Nfl().row_odds(g), {})
 

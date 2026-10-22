@@ -199,10 +199,10 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    team logos" can be turned off per league.
    **Pre-game screen (Joe, Oct 22 2026): logos too, odds compressed.** Laid out like the score screen:
    each team's row has its logo, name in team colour and its own number on the right, sportsbook style
-   (NFL spread on the favourite's row only, e.g. CHI -3, and PK on the home row for a pick'em (Joe,
-   Oct 22 2026); MLB moneyline on both rows: TB +133 / MIL -161). The bottom line
-   has the start time on the left (brighter gray; "SU 1p" style when sharing the line) and, for the
-   NFL, the total on the right ("O/U49.5", or just the number if they'd touch). Colour badges were tried and dropped: too many colour pairs were unreadable.
+   (NFL spread on the favourite's row only, e.g. CHI -3, PK on the home row for a pick'em, and the
+   total on the other row right above or below it as "o49.5", since "O/U 49.5" won't fit beside a
+   three-letter team (Joe, Oct 22 2026); MLB moneyline on both rows: TB +133 / MIL -161). The bottom
+   line is just the start time ("SUN 1:00p"). Colour badges were tried and dropped: too many colour pairs were unreadable.
 
 ## Still open
 
