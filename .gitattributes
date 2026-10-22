@@ -1,0 +1,4 @@
+# Keep Unix line endings so scripts run on the Pi
+* text=auto eol=lf
+*.png binary
+*.gif binary
