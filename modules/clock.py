@@ -22,7 +22,7 @@ import requests
 from PIL import Image
 
 import config
-from core import layouts, pixels
+from core import pixels
 from core.module import Module
 from modules import nws
 
@@ -193,14 +193,11 @@ def icon(code):
 class ClockWeather(Module):
     id = "clock"
     name = "Clock & weather"
-    description = "Date, time, current weather, 3-day forecast, sunrise and sunset."
+    description = "Time, date, today's weather (now, high and low), sunrise and sunset, on one screen."
     default_enabled = True
     default_seconds = 20
     fetch_seconds = FETCH_SECONDS
-    fields = [
-        {"key": "sun_seconds", "label": "Sunrise & sunset at the end of each turn (seconds)", "type": "int",
-         "default": 6, "min": 0, "max": 60, "hint": "Shown in place of the forecast. 0 never shows them."},
-    ]
+    fields = []
 
     def __init__(self, board=None):
         super().__init__(board)
@@ -208,8 +205,6 @@ class ClockWeather(Module):
         if cached and cached.get("current_at") and \
                 (datetime.now() - cached["current_at"]).total_seconds() < STALE_SECONDS:
             self.data = cached                 # weather straight after a restart
-        self._frame_key = None
-        self._frame = None
 
     # ---------- fetching ----------
     def fetch(self, now):
@@ -291,12 +286,12 @@ class ClockWeather(Module):
             return CLOCK_UNKNOWN
         return CLOCK_DAY if today["sunrise"] <= now < today["sunset"] else CLOCK_NIGHT
 
-    def sun_times(self, now):
-        """(next sunrise, next sunset) after `now`, or None if not known."""
-        days = self._days(now)
-        rise = next((d["sunrise"] for d in days if d["sunrise"] and d["sunrise"] > now), None)
-        sets = next((d["sunset"] for d in days if d["sunset"] and d["sunset"] > now), None)
-        return (rise, sets) if rise and sets else None
+    def today_sun(self, now):
+        """Today's (sunrise, sunset), or None if not known."""
+        today = self._today(now)
+        if today and today["sunrise"] and today["sunset"]:
+            return today["sunrise"], today["sunset"]
+        return None
 
     def alerts(self, now):
         if not self.board.location["weather_alerts"]:
@@ -308,20 +303,18 @@ class ClockWeather(Module):
         return True             # the clock always has something to show, weather or not
 
     def pages(self, now):
-        """The forecast screen, then sunrise and sunset."""
+        """One screen: the time and today's weather (Joe, Oct 22 2026)."""
         alerts = self.alerts(now)
         alert = alerts[int(now.timestamp() // ALERT_SECONDS) % len(alerts)] if alerts else None
         key = (now.strftime("%Y-%m-%d %H:%M"), repr(alert), id(self.data), self.board.location["clock_format"])
         if getattr(self, "_pages_key", None) != key:
-            self._pages = [self.draw(now, "forecast", alert)]
-            if self.sun_times(now):
-                self._pages.append(self.draw(now, "sun", alert))
+            self._pages = [self.draw(now, alert)]
             self._pages_key = key
         return self._pages
 
     def ticker_items(self, now):
         """For the scrolling layouts: alerts, the time (full ticker only; the split layout's top bar
-        has it), the date, now, today, tomorrow, sunrise and sunset."""
+        has it), the date, now, today, sunrise and sunset."""
         fmt = self.board.location["clock_format"]
         items = [[(a["text"], ALERT_COLOURS.get(a["color"], ALERT_COLOURS["orange"]))] for a in self.alerts(now)]
         if self.layout() == "ticker":
@@ -331,13 +324,11 @@ class ClockWeather(Module):
         if current:
             items.append([(f"{round(current['temp'])}°", blend(TEMP_DRY, TEMP_HUMID, (current.get("humidity") or 0) / 100)),
                           (f" {condition(current.get('code'))}", WHITE)])
-        for i, day in enumerate(self._days(now)[:2]):
-            if day["min"] is None or day["max"] is None:
-                continue
-            name = "TODAY" if day["date"] == now.date() else DAYS[day["date"].weekday()].upper()
-            items.append([(name + " ", DAY_NAME), (f"{day['max']:.0f}", TEMP_MAX), ("/", pixels.DIM),
+        day = self._today(now)
+        if day and day["min"] is not None and day["max"] is not None:
+            items.append([("TODAY ", DAY_NAME), (f"{day['max']:.0f}", TEMP_MAX), ("/", pixels.DIM),
                           (f"{day['min']:.0f}", TEMP_MIN), (f" {condition(day['code'])}", WHITE)])
-        sun = self.sun_times(now)
+        sun = self.today_sun(now)
         if sun:
             items.append([("↑ ", SUNRISE), (short_time(sun[0], fmt), SUNRISE),
                           ("  ↓ ", SUNSET), (short_time(sun[1], fmt), SUNSET)])
@@ -354,44 +345,12 @@ class ClockWeather(Module):
             pixels.draw_text(bar, "small", 63 - pixels.text_width("small", text), 7, colour, text)
         return bar
 
-    def frame(self, now, t):
-        """Roll layout: as pages, but sunrise and sunset slide up over the forecast instead of
-        appearing. Other layouts as for every module."""
-        if self.layout() != "roll":
-            return super().frame(now, t)
-        img = self.page_frame(now, t)
-        secs, sun_secs = self.settings["seconds"], self.settings["sun_seconds"]
-        into = (t % secs) - (secs - sun_secs)
-        if self.sun_times(now) and sun_secs and 0 <= into < layouts.ROLL_SECONDS:
-            return layouts.slide(self.page_frame(now, t - into - 0.001), img, into)
-        return img
-
-    def turn_length(self, now):
-        """The clock's turn is its own setting: sunrise and sunset share the turn with the forecast."""
-        if self.layout() in ("pages", "roll"):
-            return self.settings["seconds"]
-        return super().turn_length(now)
-
-    def page_frame(self, now, t):
-        """Pages layout: the forecast screen, with sunrise and sunset for the last few seconds of the turn."""
-        sun = self.sun_times(now)
-        secs, sun_secs = self.settings["seconds"], self.settings["sun_seconds"]
-        page = "sun" if sun and sun_secs and (t % secs) >= secs - sun_secs else "forecast"
-        alerts = self.alerts(now)
-        slot = int(now.timestamp() // ALERT_SECONDS) % len(alerts) if alerts else None
-        key = (now.strftime("%Y-%m-%d %H:%M"), page, slot, id(self.data), self.board.location["clock_format"])
-        if key != self._frame_key:
-            self._frame = self.draw(now, page, alerts[slot] if alerts else None)
-            self._frame_key = key
-        return self._frame
-
-    def draw(self, now, page, alert=None):
+    def draw(self, now, alert=None):
+        """The one screen: time, temperature and date on top (itsposttime's layout), then today's icon
+        with its high and low, then today's sunrise and sunset."""
         img = pixels.blank()
         self._draw_top(img, now, alert)
-        if page == "sun":
-            self._draw_sun(img, now)
-        else:
-            self._draw_forecast(img, now)
+        self._draw_today(img, now)
         return img
 
     def _draw_top(self, img, now, alert):
@@ -420,34 +379,28 @@ class ClockWeather(Module):
         for i, ch in enumerate(label):
             x += pixels.draw_text(img, "tiny", x, 11, blend(start, end, i / (len(label) - 1)), ch)
 
-    def _draw_forecast(self, img, now):
-        width = 64 // 3
-        offset = 1
-        for day in self._days(now)[:3]:
-            if day["min"] is None or day["max"] is None:
-                offset += width
-                continue
-            name = DAYS[day["date"].weekday()]
-            hi, lo = f"{day['max']:.0f}", f"{day['min']:.0f}"
-            pixels.draw_text(img, "tiny", offset + (width - pixels.text_width("tiny", name)) // 2 + 1, 17,
-                             DAY_NAME, name)
-            ic = icon(day["code"])
+    def _draw_today(self, img, now):
+        today = self._today(now)
+        if today and today["max"] is not None and today["min"] is not None:
+            pieces = [(f"{today['max']:.0f}°", TEMP_MAX), ("/", pixels.DIM), (f"{today['min']:.0f}°", TEMP_MIN)]
+            ic = icon(today["code"])
+            text_w = sum(pixels.text_width("small", t) for t, _ in pieces)
+            width = text_w + (ICON_SIZE + 3 if ic is not None else 0)
+            x = (pixels.WIDTH - width) // 2
             if ic is not None:
-                img.paste(ic, (offset + (width - ICON_SIZE) // 2, 17))
-            hi_w, lo_w = pixels.text_width("tiny", hi), pixels.text_width("tiny", lo)
-            x = offset + (width - hi_w - lo_w - 1) // 2 + 1
-            pixels.draw_text(img, "tiny", x, 32, TEMP_MAX, hi)
-            pixels.draw_text(img, "tiny", x + hi_w, 32, TEMP_MIN, lo)
-            offset += width
-
-    def _draw_sun(self, img, now):
-        rise, sets = self.sun_times(now)
-        fmt = self.board.location["clock_format"]
-        for y, arrow, word, when, colour in ((21, "↑", "RISE", rise, SUNRISE), (30, "↓", "SET", sets, SUNSET)):
-            label = short_time(when, fmt)
-            pixels.draw_text(img, "small", 3, y, colour, arrow)
-            pixels.draw_text(img, "small", 11, y, WHITE, word)
-            pixels.draw_text(img, "small", 63 - pixels.text_width("small", label), y, colour, label)
+                img.paste(ic, (x, 12))
+                x += ICON_SIZE + 3
+            for text, colour in pieces:
+                x += pixels.draw_text(img, "small", x, 20, colour, text)
+        sun = self.today_sun(now)
+        if sun:
+            fmt = self.board.location["clock_format"]
+            rise, sets = "↑" + short_time(sun[0], fmt), "↓" + short_time(sun[1], fmt)
+            gap = max(2, pixels.WIDTH - pixels.text_width("small", rise) - pixels.text_width("small", sets))
+            width = pixels.text_width("small", rise) + min(gap, 8) + pixels.text_width("small", sets)
+            x = (pixels.WIDTH - width) // 2
+            x += pixels.draw_text(img, "small", x, 30, SUNRISE, rise) + min(gap, 8)
+            pixels.draw_text(img, "small", x, 30, SUNSET, sets)
 
     def sleep_frame(self, now):
         """Sleep mode: time and date only."""

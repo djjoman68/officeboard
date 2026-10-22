@@ -56,7 +56,7 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | `core/pixels.py` | Pillow drawing with the .bdf fonts, `text_strip` + `marquee` for scrolling, `led_preview` |
 | `core/layouts.py` | The four layouts: `roll`, `ticker`, `split`, `text_page`; `join_items` for ticker text |
 | `core/sleep.py` | Sleep schedule, all-day days, Sleep now / Wake now overrides. Pure logic |
-| `modules/clock.py` | Clock & weather: Tomorrow.io fetch + disk cache, itsposttime's layout, sun at end of turn, alerts, sleep screen |
+| `modules/clock.py` | Clock & weather: Tomorrow.io fetch + disk cache, one screen: itsposttime's top band, today's icon + high/low, today's sunrise/sunset; alerts; sleep screen |
 | `modules/nws.py` | Severe weather alerts (from itsposttime) |
 | `modules/stocks.py` | Stocks: Finnhub quotes + market status, Markets page, one page (or 3 rows) per stock |
 | `modules/nyra.py` | NYRA module: card before the window, race in it, near post (takeover at hold_mtp), take-over mode |

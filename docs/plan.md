@@ -65,6 +65,10 @@ Do this early: it shapes how every module draws.
 
 ### 1. Clock, date, weather, sun
 - Date, time, current weather, today's forecast, sunrise and sunset.
+- **One-page design (Joe, Oct 22 2026), replacing the 3-day forecast and the separate sun screen:** top
+  band as itsposttime (big clock, current temperature, date tinted by the moon phase); middle line,
+  centred: today's icon, high (orange) / low (blue); bottom line: today's sunrise (yellow ↑) and sunset
+  (orange ↓). Today only. Alerts still shrink the clock. The sun_seconds setting is gone.
 - Port of itsposttime's idle screens (Tomorrow.io + NWS alerts). Open-Meteo is a free, no-key option
   if needed.
 
@@ -142,6 +146,7 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    so it shows straight after a restart. Choices made while building, open to change:
    - Sunrise/sunset show for the last 6 seconds of each clock turn (adjustable, 0 = off), replacing the
      forecast, instead of itsposttime's last 15 seconds of every minute (turns are shorter than a minute).
+     (Replaced Oct 22 2026 by the one-page design, see module 1.)
    - Location, units, clock format, Tomorrow.io key and alerts are board-wide Settings, since other
      modules (games, races) show times too. A separate free Tomorrow.io key from the odds board's is
      suggested.
@@ -153,8 +158,7 @@ Each step ends with a preview (image or GIF) for Joe to approve.
 3. **Scroll experiment**: GIF previews of layouts A-D, then the real panel. Joe picks.
    **Done Oct 22 2026. Joe picked C, Roll, as the board's layout (now the default).** Modules should be
    designed as pages first; ticker text stays so any module can still be switched to a scrolling layout.
-   Clock & weather under Roll keeps its agreed timing: forecast for most of the turn, then sunrise and
-   sunset slide up for the last `sun_seconds`. All four layouts remain selectable (board setting under
+   (Clock & weather is now a single screen, so nothing rolls within its turn.) All four layouts remain selectable (board setting under
    Settings → Display → Layout, or per module on the Modules page). `tools/compare_layouts.py` makes the GIFs. A "Scroll demo" module (made-up stocks, a race,
    games; off by default) gives the layouts realistic content until the real modules exist. Details:
    - Full ticker: 8x13 font, about 8 characters on screen, module name small and dim above the line.

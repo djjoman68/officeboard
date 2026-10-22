@@ -47,9 +47,8 @@ frames[0].save("preview.gif", save_all=True, append_images=frames[1:], duration=
 
 # One picture of each screen
 data = clock.data
-screens = [("Clock & weather", clock.draw(start, "forecast")),
-           ("Sunrise & sunset (end of each turn)", clock.draw(start, "sun")),
-           ("Severe weather alert", clock.draw(start, "forecast", {"text": "TSTM WRN", "color": "orange"})),
+screens = [("Clock & weather (today, one screen)", clock.draw(start)),
+           ("Severe weather alert", clock.draw(start, {"text": "TSTM WRN", "color": "orange"})),
            ("Sleep mode", clock.sleep_frame(start)),
            ("Panel test", d.modules["paneltest"].frame(start, 2.5))]
 stocks = d.modules["stocks"]

@@ -129,8 +129,7 @@ class TestClockLayouts(unittest.TestCase):
 
     def test_ticker_text(self):
         words = " | ".join("".join(t for t, _ in item) for item in self.clock("ticker").ticker_items(NOW))
-        self.assertEqual(words, "10:44 | THU OCT 22 | 72° CLEAR | TODAY 73/61 MOSTLY CLEAR | FRI 66/58 RAIN | "
-                                "↑ 7:09a  ↓ 6:14p")
+        self.assertEqual(words, "10:44 | THU OCT 22 | 72° CLEAR | TODAY 73/61 MOSTLY CLEAR | ↑ 7:09a  ↓ 6:14p")
         split_words = " ".join(t for item in self.clock("split").ticker_items(NOW) for t, _ in item)
         self.assertNotIn("10:44", split_words)                    # the top bar has the time
 
@@ -139,16 +138,10 @@ class TestClockLayouts(unittest.TestCase):
         self.assertIsNotNone(img.crop((0, 0, 30, 9)).getbbox())
         self.assertIsNotNone(img.crop((44, 0, 64, 9)).getbbox())
 
-    def test_roll_pages_are_forecast_then_sun(self):
-        self.assertEqual(len(self.clock("roll").pages(NOW)), 2)
-
-    def test_roll_keeps_sun_at_the_end_of_the_turn_and_slides_it_in(self):
+    def test_roll_shows_the_one_screen_still(self):
         m = self.clock("roll")
-        m.settings = dict(m.settings, seconds=20, sun_seconds=6)
-        forecast, sliding, sun = m.frame(NOW, 13), m.frame(NOW, 14.25), m.frame(NOW, 15)
-        self.assertEqual(forecast.tobytes(), m.page_frame(NOW, 13).tobytes())
-        self.assertEqual(sun.tobytes(), m.page_frame(NOW, 15).tobytes())
-        self.assertNotIn(sliding.tobytes(), (forecast.tobytes(), sun.tobytes()))
+        self.assertEqual(len(m.pages(NOW)), 1)
+        self.assertEqual(m.frame(NOW, 5.2).tobytes(), m.frame(NOW, 1).tobytes())     # nothing slides
         self.assertEqual(m.turn_length(NOW), 20)
 
     def test_roll_is_the_default(self):

@@ -49,35 +49,32 @@ class TestClockScreens(unittest.TestCase):
         self.assertEqual(m.clock_colour(NOW.replace(hour=20)), clock.CLOCK_NIGHT)
         self.assertEqual(module(None).clock_colour(NOW), clock.CLOCK_UNKNOWN)
 
-    def test_next_sunrise_and_sunset(self):
+    def test_todays_sunrise_and_sunset(self):
         m = module(sample_data())
-        self.assertEqual(m.sun_times(NOW), (datetime(2026, 10, 23, 7, 9), datetime(2026, 10, 22, 18, 14)))
-        evening = NOW.replace(hour=19)
-        self.assertEqual(m.sun_times(evening), (datetime(2026, 10, 23, 7, 9), datetime(2026, 10, 23, 18, 14)))
-        self.assertIsNone(module(None).sun_times(NOW))
+        today = (datetime(2026, 10, 22, 7, 9), datetime(2026, 10, 22, 18, 14))
+        self.assertEqual(m.today_sun(NOW), today)
+        self.assertEqual(m.today_sun(NOW.replace(hour=19)), today)      # still today's after sunset
+        self.assertIsNone(module(None).today_sun(NOW))
 
-    def test_forecast_page_draws_clock_temperature_date_and_three_days(self):
-        img = module(sample_data()).draw(NOW, "forecast")
+    def test_one_screen_with_todays_weather_and_sun(self):
+        """Joe's one-page design (Oct 22 2026): time, temperature, date; today's icon, high and low;
+        today's sunrise and sunset. No other days, no second screen."""
+        m = module(sample_data())
+        self.assertEqual(len(m.pages(NOW)), 1)
+        img = m.draw(NOW)
         self.assertIsNotNone(img.crop((0, 0, 40, 12)).getbbox())       # clock
         self.assertIsNotNone(img.crop((40, 0, 64, 6)).getbbox())       # temperature
         self.assertIsNotNone(img.crop((40, 6, 64, 12)).getbbox())      # date
-        for x in (0, 21, 42):
-            self.assertIsNotNone(img.crop((x, 12, x + 21, 32)).getbbox(), x)
-        seen = colours(img)
-        self.assertIn(clock.CLOCK_DAY, seen)
-        self.assertIn(clock.DAY_NAME, seen)
+        middle, bottom = colours(img.crop((0, 12, 64, 22))), colours(img.crop((0, 22, 64, 32)))
+        self.assertIn(clock.TEMP_MAX, middle)                          # today's high...
+        self.assertIn(clock.TEMP_MIN, middle)                          # ...and low
+        self.assertIn(clock.SUNRISE, bottom)
+        self.assertIn(clock.SUNSET, bottom)
+        self.assertNotIn(clock.DAY_NAME, colours(img))                 # no day names: today only
 
-    def test_sun_page_at_the_end_of_each_turn(self):
+    def test_same_screen_all_turn(self):
         m = module(sample_data())
-        m.settings = dict(m.settings, seconds=20, sun_seconds=6)
-        forecast, sun = m.frame(NOW, 2), m.frame(NOW, 15)
-        self.assertIn(clock.DAY_NAME, colours(forecast))
-        self.assertIn(clock.SUNRISE, colours(sun))
-        self.assertIn(clock.SUNSET, colours(sun))
-        self.assertNotIn(clock.DAY_NAME, colours(sun))
-        self.assertIn(clock.SUNRISE, colours(m.frame(NOW, 55)))   # still works on a long single turn
-        m.settings["sun_seconds"] = 0
-        self.assertNotIn(clock.SUNRISE, colours(m.frame(NOW, 15)))
+        self.assertEqual(m.frame(NOW, 2).tobytes(), m.frame(NOW, 15).tobytes())
 
     def test_without_weather_the_clock_still_shows(self):
         m = module(None)
