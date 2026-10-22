@@ -22,7 +22,7 @@ Built on the odds board, **itsposttime** (https://github.com/djjoman68/itspostti
 based on ColinWaddell/FlightTracker (GPL-3.0). Read itsposttime's CLAUDE.md before reusing its code:
 its NYRA notes (page structure, race lifecycle, polling limits) apply here unchanged.
 
-Repo: https://github.com/djjoman68/officeboard (public; not yet created on GitHub).
+Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 
 ## Status
 
