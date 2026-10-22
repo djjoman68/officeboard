@@ -141,6 +141,19 @@ class TestClockLayouts(unittest.TestCase):
     def test_roll_pages_are_forecast_then_sun(self):
         self.assertEqual(len(self.clock("roll").pages(NOW)), 2)
 
+    def test_roll_keeps_sun_at_the_end_of_the_turn_and_slides_it_in(self):
+        m = self.clock("roll")
+        m.settings = dict(m.settings, seconds=20, sun_seconds=6)
+        forecast, sliding, sun = m.frame(NOW, 13), m.frame(NOW, 14.25), m.frame(NOW, 15)
+        self.assertEqual(forecast.tobytes(), m.page_frame(NOW, 13).tobytes())
+        self.assertEqual(sun.tobytes(), m.page_frame(NOW, 15).tobytes())
+        self.assertNotIn(sliding.tobytes(), (forecast.tobytes(), sun.tobytes()))
+        self.assertEqual(m.turn_length(NOW), 20)
+
+    def test_roll_is_the_default(self):
+        self.assertEqual(config.normalize_display({})["layout"], "roll")
+        self.assertEqual(config.normalize_display({"layout": "zigzag"})["layout"], "roll")
+
     def test_condition_words(self):
         self.assertEqual(condition(1101), "PARTLY CLOUDY")
         self.assertEqual(condition(10001), "CLEAR")                # night variant

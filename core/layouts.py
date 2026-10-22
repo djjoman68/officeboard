@@ -38,20 +38,27 @@ def pass_seconds(strip_width, speed, span=pixels.WIDTH):
     return (strip_width + span) / max(1, speed)
 
 
+def slide(old, new, into):
+    """`into` seconds after a page change: the new page pushing the old one up and out."""
+    if into >= ROLL_SECONDS:
+        return new
+    shift = int(pixels.HEIGHT * into / ROLL_SECONDS)        # 0..31 rows moved so far
+    img = pixels.blank()
+    img.paste(old, (0, -shift))
+    img.paste(new, (0, pixels.HEIGHT - shift))
+    return img
+
+
 def roll(pages, t, page_seconds):
-    """Pages in turn; at each change the next page pushes the last one up and out."""
+    """Pages in turn; at each change the next page pushes the last one up and out.
+    A turn opens on its first page without sliding."""
     if not pages:
         return pixels.blank()
     n = len(pages)
     i = int(t // page_seconds) % n
-    into = t - (t // page_seconds) * page_seconds
-    if n == 1 or into >= ROLL_SECONDS or t < page_seconds:
+    if n == 1 or t < page_seconds:
         return pages[i]
-    shift = int(pixels.HEIGHT * into / ROLL_SECONDS)        # 0..31 rows moved so far
-    img = pixels.blank()
-    img.paste(pages[(i - 1) % n], (0, -shift))
-    img.paste(pages[i], (0, pixels.HEIGHT - shift))
-    return img
+    return slide(pages[(i - 1) % n], pages[i], t - (t // page_seconds) * page_seconds)
 
 
 def ticker(strip, t, speed, label=None):

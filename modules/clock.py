@@ -22,7 +22,7 @@ import requests
 from PIL import Image
 
 import config
-from core import pixels
+from core import layouts, pixels
 from core.module import Module
 from modules import nws
 
@@ -308,7 +308,7 @@ class ClockWeather(Module):
         return True             # the clock always has something to show, weather or not
 
     def pages(self, now):
-        """For the roll layout: the forecast screen, then sunrise and sunset."""
+        """The forecast screen, then sunrise and sunset."""
         alerts = self.alerts(now)
         alert = alerts[int(now.timestamp() // ALERT_SECONDS) % len(alerts)] if alerts else None
         key = (now.strftime("%Y-%m-%d %H:%M"), repr(alert), id(self.data), self.board.location["clock_format"])
@@ -353,6 +353,24 @@ class ClockWeather(Module):
             colour = blend(TEMP_DRY, TEMP_HUMID, (current.get("humidity") or 0) / 100)
             pixels.draw_text(bar, "small", 63 - pixels.text_width("small", text), 7, colour, text)
         return bar
+
+    def frame(self, now, t):
+        """Roll layout: as pages, but sunrise and sunset slide up over the forecast instead of
+        appearing. Other layouts as for every module."""
+        if self.layout() != "roll":
+            return super().frame(now, t)
+        img = self.page_frame(now, t)
+        secs, sun_secs = self.settings["seconds"], self.settings["sun_seconds"]
+        into = (t % secs) - (secs - sun_secs)
+        if self.sun_times(now) and sun_secs and 0 <= into < layouts.ROLL_SECONDS:
+            return layouts.slide(self.page_frame(now, t - into - 0.001), img, into)
+        return img
+
+    def turn_length(self, now):
+        """The clock's turn is its own setting: sunrise and sunset share the turn with the forecast."""
+        if self.layout() in ("pages", "roll"):
+            return self.settings["seconds"]
+        return super().turn_length(now)
 
     def page_frame(self, now, t):
         """Pages layout: the forecast screen, with sunrise and sunset for the last few seconds of the turn."""

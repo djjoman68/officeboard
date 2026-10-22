@@ -32,8 +32,9 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 - Oct 22 2026: step 2 built and tested offline: Clock & weather module (itsposttime's layout and
   sources), sleep mode (schedule, all-day days, Sleep now / Wake now).
 - Oct 22 2026: step 3 built: four layouts (pages, roll, full ticker, split), board-wide or per module,
-  Scroll demo module, comparison GIFs (`python3 tools/compare_layouts.py` -> previews/). Waiting for
-  Joe to pick a layout; default stays Pages. Next: step 4 (stocks).
+  Scroll demo module, comparison GIFs (`python3 tools/compare_layouts.py` -> previews/).
+- Oct 22 2026: Joe picked **Roll** (layout C) for the board; it's the default. Design new modules'
+  pages first (they roll); keep ticker_items too. Next: step 4 (stocks).
 - Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
 
 ## Layout

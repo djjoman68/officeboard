@@ -21,7 +21,7 @@ DEFAULT_DISPLAY = {
     "fps": 50,                    # frames per second; scrolling needs 30+ to look smooth
     "page_seconds": 5,            # how long each page shows when a module has several
     "scroll_speed": 24,           # pixels per second for scrolling text
-    "layout": "pages",            # pages, roll, ticker or split (see core/layouts.py); modules can differ
+    "layout": "roll",             # roll (Joe's pick, Oct 22 2026), pages, ticker or split; modules can differ
     "gpio_slowdown": 2,           # 2 for a Pi 3A+
     "hat_pwm_enabled": False,     # Bonnet PWM solder bridge installed
     "led_rgb_sequence": "RGB",
@@ -53,7 +53,7 @@ def normalize_display(raw):
     if d["led_rgb_sequence"] not in RGB_SEQUENCES:
         d["led_rgb_sequence"] = "RGB"
     if d["layout"] not in LAYOUTS:
-        d["layout"] = "pages"
+        d["layout"] = "roll"
     if d["panel_type"] not in PANEL_TYPES:
         d["panel_type"] = ""
     return {k: d[k] for k in DEFAULT_DISPLAY}
