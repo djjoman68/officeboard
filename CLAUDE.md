@@ -65,7 +65,7 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | `modules/demo.py` | Scroll demo: made-up stocks, race, games for comparing layouts; remove when real modules exist |
 | `modules/paneltest.py` | Panel test module (opts out of layouts) |
 | `modules/planned.py` | Stand-ins for modules not built yet (none left; kept for future ideas) |
-| `web/` | Flask app on :8080. Modules page forms are built from each module's `fields` |
+| `web/` | Flask app on :8080. Modules page forms are built from each module's `fields`. /panel is the pop-out window (board.png?dot=12, every second) |
 | `tools/preview.py` | preview.gif / preview.png of the rotation, simulated time |
 | `tools/compare_layouts.py` | previews/layout-a..d GIFs: clock + scroll demo in each layout |
 | `tools/dev.py` | Whole board on a computer with the fake panel, web UI on localhost:8080 |

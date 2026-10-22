@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Office Board — Panel</title>
+<style>
+  /* Pop-out window: the panel picture as big as the window allows, on black, nothing else */
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; cursor: zoom-in; }
+  body.full { cursor: zoom-out; }
+  img { display: block; width: 100vw; height: 50vw; max-height: 100vh; max-width: 200vh;
+        object-fit: contain; image-rendering: pixelated; }
+  #note { position: fixed; left: 0; right: 0; bottom: 10px; text-align: center; color: #888;
+          font: 14px system-ui, sans-serif; pointer-events: none; transition: opacity 0.5s; }
+</style>
+</head>
+<body>
+<img id="panel" alt="Picture of the LED panel">
+<div id="note">Double-click for full screen</div>
+<script>
+// New picture every second. Each one loads in the background and replaces the old only once it's
+// ready, so the window never flickers or goes blank.
+const img = document.getElementById("panel"), note = document.getElementById("note");
+let busy = false;
+function refresh() {
+  if (busy) return;
+  busy = true;
+  const next = new Image();
+  next.onload = () => { img.src = next.src; busy = false; };
+  next.onerror = () => { busy = false; };
+  next.src = `/board.png?dot=12&t=${Date.now()}`;
+}
+refresh();
+setInterval(refresh, 1000);
+
+// Is the display still running? Say so if it stops.
+setInterval(async () => {
+  try {
+    const s = (await (await fetch("/api/status")).json()).status;
+    if (!s || s.age_seconds > 30) { note.textContent = "No signal from the display"; note.style.opacity = 1; }
+    else if (note.textContent === "No signal from the display") { note.style.opacity = 0; }
+  } catch (e) { note.textContent = "Can't reach the board"; note.style.opacity = 1; }
+}, 5000);
+setTimeout(() => { if (note.textContent.startsWith("Double")) note.style.opacity = 0; }, 3000);
+
+// Double-click: full screen, and again to leave it
+document.body.addEventListener("dblclick", () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen?.();
+});
+document.addEventListener("fullscreenchange", () => document.body.classList.toggle("full", !!document.fullscreenElement));
+</script>
+</body>
+</html>

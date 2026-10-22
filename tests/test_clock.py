@@ -195,11 +195,15 @@ class TestWeatherFetching(TempFiles):
 
     def test_restart_shows_cached_weather(self):
         self.m.refresh(NOW)
-        again = clock.ClockWeather()
-        self.assertIsNotNone(again.data)
         cached = clock.load_cache()
         self.assertEqual(cached["days"][0]["date"], NOW.date())
         self.assertEqual(cached["key"], ("40.72,-73.70", "imperial"))
+        # A restart soon after uses the saved weather; hours later it doesn't (it's checked against the
+        # real clock, so the saved reading is moved to just now / three hours ago)
+        clock.save_cache(dict(cached, current_at=datetime.now() - timedelta(minutes=5)))
+        self.assertIsNotNone(clock.ClockWeather().data)
+        clock.save_cache(dict(cached, current_at=datetime.now() - timedelta(hours=3)))
+        self.assertIsNone(clock.ClockWeather().data)
 
     def test_rate_limit_message(self):
         resp = requests.Response()

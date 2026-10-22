@@ -41,6 +41,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .section { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; margin-bottom: 16px; }
 .section-header { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
                   padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.section-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+                      padding-top: 8px; padding-bottom: 8px; }
+.section-header-row .btn { letter-spacing: 0; text-transform: none; }
 .section-body { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
 .section-body.single { grid-template-columns: 1fr; }
 @media (max-width: 600px) {

@@ -68,13 +68,22 @@ def api_status():
     return jsonify({"status": _status(), "names": names})
 
 
+@app.get("/panel")
+def panel_page():
+    """Pop-out window: just the panel picture, filling the window."""
+    return render_template("panel.html")
+
+
 @app.get("/board.png")
 def board_png():
-    """Latest picture of the panel, enlarged to look like the LEDs."""
+    """Latest picture of the panel, enlarged to look like the LEDs. ?dot=N sets the size of each LED
+    in pixels (4-16, default 8): the pop-out window asks for bigger ones."""
     from PIL import Image
     if not os.path.exists(FRAME_FILE):
         return ("", 204)
-    img = led_preview(Image.open(FRAME_FILE).convert("RGB"), dot=8)
+    dot = config.clamp_int(request.args.get("dot", 8), 4, 16, 8)
+    with Image.open(FRAME_FILE) as frame:
+        img = led_preview(frame.convert("RGB"), dot=dot)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)

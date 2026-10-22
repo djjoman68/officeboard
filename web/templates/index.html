@@ -11,11 +11,13 @@
 <div class="content">
 
   <div class="section">
-    <div class="section-header">On the panel now</div>
+    <div class="section-header section-header-row">On the panel now
+      <button class="btn btn-reset btn-small" id="popout" type="button" title="Open the panel picture in its own window">Pop out ↗</button>
+    </div>
     <div class="section-body single">
       <div class="panel" id="panel"><div class="idle-note">Loading…</div></div>
       <div class="stat" id="details"></div>
-      <div class="hint">The picture updates every 2 seconds, so scrolling text shows as snapshots here.</div>
+      <div class="hint">The picture updates every second, so scrolling text shows as snapshots here.</div>
     </div>
   </div>
 
@@ -166,6 +168,12 @@ async function sleepAction(action) {
   setTimeout(refresh, 1500);
 }
 el("sleep-btn").onclick = () => sleepAction(el("sleep-btn").dataset.action);
+
+// Pop-out: the panel picture in its own window (reuses the window if it's already open)
+el("popout").onclick = () => {
+  const w = window.open("/panel", "officeboard-panel", "width=800,height=430");
+  if (w) w.focus(); else location.href = "/panel";      // pop-ups blocked: open it here instead
+};
 el("sleep-cancel").onclick = () => sleepAction("schedule");
 
 async function refreshSystem() {

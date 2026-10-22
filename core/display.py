@@ -25,7 +25,7 @@ STATUS_FILE = os.path.join(STATUS_DIR, "status.json")
 FRAME_FILE = os.path.join(STATUS_DIR, "board.png")
 
 CONFIG_CHECK_SECONDS = 1
-STATUS_SECONDS = 2
+STATUS_SECONDS = 1               # how often the web picture (and pop-out) updates
 ERROR_LOG_SECONDS = 60
 
 

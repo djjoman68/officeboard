@@ -20,7 +20,8 @@ A sleep mode shows just the clock and date at a dimmer brightness on a schedule.
 ## Web UI
 
 `http://officeboard.local:8080`
-- **Board**: live picture of the panel, Sleep now / Wake now, and which modules are in rotation
+- **Board**: live picture of the panel (with a Pop out button for its own window, double-click for full
+  screen), Sleep now / Wake now, and which modules are in rotation
 - **Modules**: turn each module on or off, change the order, and edit its settings
 - **Settings**: weather location and key, clock format, sleep schedule, brightness, scroll speed,
   panel hardware, Wi-Fi, restart and shut down

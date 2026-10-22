@@ -48,8 +48,22 @@ class TestModulesPage(TempFiles):
         self.assertNotIn("bogus", nfl)
         self.assertNotIn("nosuch", config.load()["modules"])
 
+    def test_pop_out_window(self):
+        self.assertIn(b'id="popout"', self.c.get("/").data)                 # button on the Board page
+        page = self.c.get("/panel")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"/board.png?dot=12", page.data)
+        from PIL import Image
+        Image.new("RGB", (64, 32)).save(self.web.FRAME_FILE)
+        sizes = {}
+        for dot in ("12", "99", "x"):
+            r = self.c.get(f"/board.png?dot={dot}")
+            with Image.open(__import__("io").BytesIO(r.data)) as img:
+                sizes[dot] = img.size
+        self.assertEqual(sizes, {"12": (768, 384), "99": (1024, 512), "x": (512, 256)})   # 16 max, 8 default
+
     def test_pages_load(self):
-        for url in ("/", "/modules", "/config", "/logs"):
+        for url in ("/", "/modules", "/config", "/logs", "/panel"):
             r = self.c.get(url)
             self.assertEqual(r.status_code, 200, url)
             self.assertIn(b"Office Board", r.data)
