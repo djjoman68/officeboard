@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Office Board — Modules</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% set page = 'modules' %}{% include '_header.html' %}
+<div class="ticker">Modules take turns on the panel in this order · Changes reach the panel within a few seconds</div>
+<div class="content">
+  <div id="list"><div class="hint">Loading…</div></div>
+  <div id="msg"></div>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+function node(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function msg(t, ok) { const m = el("msg"); m.textContent = t; m.className = ok ? "ok" : "err"; if (ok) setTimeout(() => { if (m.textContent === t) m.textContent = ""; }, 3000); }
+
+let modules = [];
+const open = new Set();      // module ids whose settings are showing
+
+async function save(body, done) {
+  try {
+    const r = await fetch("/api/modules", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+    const d = await r.json();
+    if (!d.ok) return msg("Save failed: " + (d.error || r.status), false);
+    modules = d.modules;
+    render();
+    msg(done || "Saved", true);
+  } catch (e) { msg("Couldn't reach the board", false); }
+}
+
+function move(id, dir) {
+  const ids = modules.map(m => m.id);
+  const i = ids.indexOf(id), j = i + dir;
+  if (j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  save({order: ids}, "Order saved");
+}
+
+// One input per setting, built from the module's own list of fields
+function input(f, value) {
+  const wrap = node("div", "field" + (f.type === "bool" ? " checkbox" : ""));
+  const id = `f-${Math.random().toString(36).slice(2)}`;
+  let inp;
+  if (f.type === "select") {
+    inp = node("select");
+    for (const [v, label] of f.options) { const o = node("option", null, label); o.value = v; inp.append(o); }
+    inp.value = value;
+  } else if (f.type === "list") {
+    inp = node("textarea"); inp.rows = 5; inp.value = (value || []).join("\n");
+  } else {
+    inp = node("input");
+    inp.type = f.type === "int" ? "number" : f.type === "bool" ? "checkbox" : "text";
+    if (f.type === "int") { inp.min = f.min; inp.max = f.max; }
+    if (f.type === "bool") inp.checked = !!value; else if (f.type !== "list") inp.value = value;
+  }
+  inp.id = id; inp.dataset.key = f.key; inp.dataset.type = f.type;
+  const label = node("label", null, f.label); label.htmlFor = id;
+  if (f.type === "bool") wrap.append(inp, label); else wrap.append(label, inp);
+  if (f.hint) wrap.append(node("span", "hint", f.hint + (f.type === "list" ? " One per line." : "")));
+  else if (f.type === "list") wrap.append(node("span", "hint", "One per line."));
+  return wrap;
+}
+
+function readForm(form) {
+  const out = {};
+  form.querySelectorAll("[data-key]").forEach(i => {
+    const t = i.dataset.type;
+    out[i.dataset.key] = t === "bool" ? i.checked : t === "int" ? parseInt(i.value, 10)
+      : t === "list" ? i.value.split("\n").map(s => s.trim()).filter(Boolean) : i.value;
+  });
+  return out;
+}
+
+function statusLine(m) {
+  if (!m.built) return `Coming in step ${m.step}`;
+  if (!m.settings.enabled) return "Off";
+  const st = m.status || {};
+  if (st.last_error) return "Problem: " + st.last_error;
+  if (st.has_content === false) return "On · nothing to show right now";
+  return "On · in rotation";
+}
+
+function render() {
+  const list = el("list");
+  list.replaceChildren();
+  modules.forEach((m, i) => {
+    const card = node("div", "section module" + (m.built ? "" : " planned") + (m.settings.enabled ? " is-on" : ""));
+    const head = node("div", "module-head");
+
+    const sw = node("label", "switch");
+    const box = node("input"); box.type = "checkbox"; box.checked = m.settings.enabled; box.disabled = !m.built;
+    box.setAttribute("aria-label", `${m.name} on or off`);
+    box.onchange = () => save({settings: {[m.id]: {enabled: box.checked}}}, `${m.name} turned ${box.checked ? "on" : "off"}`);
+    sw.append(box, node("span", "slider"));
+
+    const text = node("div", "module-text");
+    text.append(node("div", "module-name", m.name), node("div", "module-desc", m.description));
+    const st = node("div", "module-status" + ((m.status || {}).last_error ? " err-text" : ""), statusLine(m));
+    text.append(st);
+
+    const btns = node("div", "module-btns");
+    const up = node("button", "btn btn-reset btn-small", "↑"); up.type = "button"; up.disabled = i === 0;
+    up.setAttribute("aria-label", `Move ${m.name} up`); up.onclick = () => move(m.id, -1);
+    const down = node("button", "btn btn-reset btn-small", "↓"); down.type = "button"; down.disabled = i === modules.length - 1;
+    down.setAttribute("aria-label", `Move ${m.name} down`); down.onclick = () => move(m.id, 1);
+    btns.append(up, down);
+    if (m.built) {
+      const gear = node("button", "btn btn-reset btn-small", open.has(m.id) ? "Close" : "Settings"); gear.type = "button";
+      gear.onclick = () => { open.has(m.id) ? open.delete(m.id) : open.add(m.id); render(); };
+      btns.append(gear);
+    }
+    head.append(sw, text, btns);
+    card.append(head);
+
+    if (m.built && open.has(m.id)) {
+      const form = node("div", "section-body module-form");
+      m.fields.filter(f => f.key !== "enabled").forEach(f => form.append(input(f, m.settings[f.key])));
+      const actions = node("div", "module-actions");
+      const sv = node("button", "btn btn-save", "Save"); sv.type = "button";
+      sv.onclick = () => save({settings: {[m.id]: readForm(form)}}, `${m.name} settings saved`);
+      actions.append(sv);
+      form.append(actions);
+      card.append(form);
+    }
+    list.append(card);
+  });
+}
+
+async function load() {
+  try {
+    modules = (await (await fetch("/api/modules")).json()).modules;
+    render();
+  } catch (e) { msg("Couldn't reach the board", false); }
+}
+load();
+// Keep the status lines current without disturbing a settings form being edited
+setInterval(async () => {
+  if (open.size) return;
+  try { modules = (await (await fetch("/api/modules")).json()).modules; render(); } catch (e) {}
+}, 10000);
+</script>
+</body>
+</html>

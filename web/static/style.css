@@ -1,0 +1,139 @@
+/* Office board web UI. A plain, neutral starting look (charcoal header, one blue accent); the final
+   style is Joe's call. Class names match itsposttime's so the shared pages carry over. */
+:root {
+  --ink: #1d232a;
+  --muted: #5b6672;
+  --rule: #dde1e6;
+  --page: #f4f5f7;
+  --paper: #ffffff;
+  --head: #1f252c;          /* header and panel frame */
+  --accent: #2f6fde;
+  --accent-dark: #2358b3;
+  --accent-wash: #eaf1fd;
+  --ok: #1f7a45;
+  --err: #c0362c;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--page); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.45;
+       min-height: 100vh; padding-bottom: 40px; }
+a { color: var(--accent-dark); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+.board-header { background: var(--head); color: #fff; padding: 14px 20px; display: flex; align-items: center;
+                gap: 12px; flex-wrap: wrap; }
+.board-title { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; }
+.board-title .dots { width: 28px; height: 14px; flex: none;
+  background: radial-gradient(circle, #ffb02e 1.6px, transparent 2px) 0 0 / 7px 7px; }
+.nav-links { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-links a { color: #d6dbe1; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-weight: 500; }
+.nav-links a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.nav-links a.active { background: #fff; color: var(--head); }
+
+.ticker { padding: 10px 20px; font-size: 14px; color: var(--muted); text-align: center;
+          border-bottom: 1px solid var(--rule); background: var(--paper); }
+
+.content { padding: 20px 16px; max-width: 900px; margin: 0 auto; }
+.section { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; margin-bottom: 16px; }
+.section-header { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+                  padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.section-body { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+.section-body.single { grid-template-columns: 1fr; }
+@media (max-width: 600px) {
+  .section-body { grid-template-columns: 1fr; }
+  .nav-links { margin-left: 0; }
+}
+
+/* Forms */
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field label { font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
+.field input, .field select, .field textarea { background: var(--paper); border: 1px solid var(--rule); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; padding: 8px 10px; width: 100%; border-radius: 6px; }
+.field textarea { font-family: var(--mono); resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); outline: 1px solid var(--accent); }
+.field.checkbox { flex-direction: row; align-items: center; gap: 10px; }
+.field.checkbox input { width: auto; height: 16px; accent-color: var(--accent); }
+.field.checkbox label { font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.hint { font-size: 12px; color: var(--muted); }
+
+.actions { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--rule);
+           position: sticky; bottom: 0; background: var(--paper); z-index: 10; flex-wrap: wrap; }
+.btn { font-family: var(--sans); font-size: 15px; font-weight: 600; padding: 8px 18px; cursor: pointer;
+       border: 1px solid transparent; border-radius: 6px; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.btn-save { background: var(--accent); color: #fff; }
+.btn-save:hover { background: var(--accent-dark); }
+.btn-reset { background: transparent; border-color: var(--rule); color: var(--ink); }
+.btn-reset:hover:not(:disabled) { background: var(--accent-wash); border-color: var(--accent); }
+.btn-small { font-size: 13px; padding: 5px 11px; }
+#msg { font-size: 14px; }
+#msg.ok, .ok { color: var(--ok); } #msg.err, .err { color: var(--err); }
+
+/* The LED panel picture */
+.panel { background: #0d1014; border-radius: 6px; padding: 14px; display: flex; justify-content: center;
+         box-shadow: inset 0 0 0 6px var(--head); }
+.panel img { width: 100%; max-width: 512px; height: auto; display: block; image-rendering: pixelated; }
+.idle-note { font-size: 18px; color: #c9ced4; padding: 40px 10px; text-align: center; }
+.stat { font-size: 14px; line-height: 1.8; color: var(--muted); }
+.stat b { color: var(--ink); font-weight: 600; }
+.err-text { color: var(--err); }
+
+pre.log { font-family: var(--mono); font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+          padding: 12px; max-height: 70vh; overflow-y: auto; color: var(--ink); }
+
+/* Board page: rotation list */
+.rot-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 10px; border-radius: 6px; }
+.rot-row.now { background: var(--accent-wash); }
+.rot-row.now span:first-child { color: var(--ink); font-weight: 600; }
+.rot-row.off { opacity: 0.55; }
+.rot-state { font-size: 13px; }
+.rot-err { font-size: 13px; padding: 0 10px 6px; }
+
+/* Modules page */
+.module-head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.module-text { flex: 1; min-width: 0; }
+.module-name { font-weight: 700; font-size: 16px; }
+.module-desc { font-size: 14px; color: var(--muted); }
+.module-status { font-size: 13px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.module.is-on .module-status { color: var(--ok); }
+.module.is-on .module-status.err-text { color: var(--err); }
+.module.planned { background: #fafbfc; }
+.module.planned .module-name, .module.planned .module-desc { color: var(--muted); }
+.module-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.module-form { border-top: 1px solid var(--rule); }
+.module-actions { grid-column: 1 / -1; }
+@media (max-width: 600px) {
+  .module-head { flex-wrap: wrap; }
+  .module-btns { width: 100%; justify-content: flex-start; }
+}
+
+/* On/off switch */
+.switch { position: relative; width: 44px; height: 24px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch input:disabled { cursor: not-allowed; }
+.switch .slider { position: absolute; inset: 0; background: #c3c9d0; border-radius: 12px; transition: background 0.15s; }
+.switch .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px;
+                          background: #fff; border-radius: 50%; transition: transform 0.15s; }
+.switch input:checked + .slider { background: var(--accent); }
+.switch input:checked + .slider::before { transform: translateX(20px); }
+.switch input:focus-visible + .slider { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch input:disabled + .slider { opacity: 0.4; }
+
+/* Wi-Fi section on the Settings page */
+.wifi-label { font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted);
+              margin-top: 4px; }
+.wifi-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.wifi-name { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
+.wifi-tag { color: var(--ok); font-size: 14px; }
+.wifi-pick { display: flex; gap: 8px; }
+.wifi-pick select { flex: 1; min-width: 0; }
+.wifi-pick .btn { flex: none; }
+#wifi-other { margin-top: 6px; }
+.wifi-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 8px; }
+#wifi-controls { display: grid; gap: 12px; margin-top: 8px; }
+#wifi-msg { font-size: 14px; }
+#wifi-msg.ok { color: var(--ok); } #wifi-msg.err { color: var(--err); }

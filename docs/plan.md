@@ -130,6 +130,10 @@ brightness.
 Each step ends with a preview (image or GIF) for Joe to approve.
 
 1. **Foundation**: copy the carried-over pieces, module system, scheduler, fast draw loop, Modules page.
+   **Done Oct 22 2026.** Notes: modules draw Pillow images, so the web picture and previews match the
+   LEDs exactly. Includes a Panel test module (colour bars + scrolling text with the frame rate) for
+   checking the P3 panel. Reordering uses up/down buttons rather than drag (works the same on a phone).
+   Web UI has a plain placeholder look; its style is Joe's call later.
 2. **Clock/weather module**: proves the framework; includes sleep mode.
 3. **Scroll experiment**: GIF previews of layouts A-D, then the real panel. Joe picks.
 4. **Stocks**.

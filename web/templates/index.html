@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Office Board</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% set page = 'home' %}{% include '_header.html' %}
+<div class="ticker" id="ticker">Connecting…</div>
+<div class="content">
+
+  <div class="section">
+    <div class="section-header">On the panel now</div>
+    <div class="section-body single">
+      <div class="panel" id="panel"><div class="idle-note">Loading…</div></div>
+      <div class="stat" id="details"></div>
+      <div class="hint">The picture updates every 2 seconds, so scrolling text shows as snapshots here.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Rotation</div>
+    <div class="section-body single"><div id="rotation" class="stat">Loading…</div>
+      <div class="hint">Turn modules on and off, reorder them and change their settings on the <a href="/modules">Modules</a> page.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">System</div>
+    <div class="section-body single"><div class="stat" id="system">…</div></div>
+  </div>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, ch => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[ch]);
+}
+
+// Picture of the panel, reloaded in place so it doesn't flicker
+function showFrame() {
+  const panel = el("panel");
+  let img = panel.querySelector("img");
+  if (!img) {
+    panel.innerHTML = "";
+    img = document.createElement("img");
+    img.alt = "Picture of the LED panel";
+    img.onerror = () => { panel.innerHTML = '<div class="idle-note">Waiting for the first picture…</div>'; };
+    panel.appendChild(img);
+  }
+  img.src = `/board.png?t=${Date.now()}`;
+}
+
+async function refresh() {
+  try {
+    const d = await (await fetch("/api/status")).json();
+    const s = d.status;
+    if (!s || s.age_seconds > 30) {
+      el("ticker").textContent = "Display not running — check the service or restart from Settings";
+      el("panel").innerHTML = '<div class="idle-note">No signal from the display</div>';
+      el("details").innerHTML = "";
+      return;
+    }
+    showFrame();
+    el("ticker").textContent = s.module_name ? `Showing ${s.module_name}` : "No modules are on";
+    el("details").innerHTML = s.module_name
+      ? `<b>${esc(s.module_name)}</b> · ${Math.floor(s.turn_seconds)}s into its turn · ${s.fps} frames a second`
+      : `Nothing to show. Turn a module on from the <a href="/modules">Modules</a> page.`;
+    const mods = await (await fetch("/api/modules")).json();
+    el("rotation").innerHTML = mods.modules.filter(m => m.built).map(m => {
+      const st = m.status || {};
+      const state = !m.settings.enabled ? "off" : st.has_content ? "on" : "waiting";
+      const label = {off: "Off", on: s.module === m.id ? "On the panel" : "In rotation", waiting: "Nothing to show yet"}[state];
+      return `<div class="rot-row ${state}${s.module === m.id ? " now" : ""}"><span>${esc(m.name)}</span>` +
+             `<span class="rot-state">${label}</span></div>` +
+             (st.last_error ? `<div class="err-text rot-err">${esc(st.last_error)}</div>` : "");
+    }).join("") || "No modules built yet.";
+  } catch (e) {
+    el("ticker").textContent = "Can't reach the board";
+  }
+}
+
+async function refreshSystem() {
+  try {
+    const d = await (await fetch("/api/system")).json();
+    const up = d.uptime_secs != null ? `${Math.floor(d.uptime_secs / 3600)}h ${Math.floor(d.uptime_secs % 3600 / 60)}m` : "—";
+    el("system").innerHTML = `CPU temp: <b>${d.cpu_temp_c != null ? d.cpu_temp_c + "°C" : "—"}</b> · Uptime: <b>${up}</b>`;
+  } catch (e) {}
+}
+
+refresh(); refreshSystem();
+setInterval(refresh, 2000); setInterval(refreshSystem, 30000);
+</script>
+</body>
+</html>

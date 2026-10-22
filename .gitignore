@@ -9,3 +9,4 @@ __pycache__/
 *.lock
 preview.png
 preview*.gif
+.claude/

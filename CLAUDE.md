@@ -26,12 +26,37 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 
 ## Status
 
-- Oct 22 2026: plan agreed (`docs/plan.md`). Repo folder created. No code yet. Next: build order step 1
-  (foundation).
-- Hardware: the P3 panel has not been tested yet.
+- Oct 22 2026: plan agreed (`docs/plan.md`). Repo created.
+- Oct 22 2026: step 1 (foundation) built and tested offline: module system, scheduler, 50 fps display
+  loop, web UI (Board, Modules, Settings, Logs), installer, Panel test module. Not yet run on the Pi.
+  Next: step 2 (clock & weather module, sleep mode).
+- Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
+
+## Layout
+
+| Path | Role |
+|---|---|
+| `officeboard.py` | Entry point; single-instance lock (/tmp/officeboard.lock); starts web UI subprocess |
+| `config.py` | Board-wide display settings, JSON load/save (config/config.json + secrets.json) |
+| `core/module.py` | `Module` base class (fetch, pages, ticker_items, frame, hold, takeover, fields) and `Fetcher` thread |
+| `core/registry.py` | `MODULE_CLASSES` list; merges every module's settings; planned modules can't be enabled |
+| `core/scheduler.py` | Rotation: order, turn length, skip modules with nothing to show, hold, take-over. Pure logic |
+| `core/display.py` | Panel options + main loop at `fps`; only changed frames go to the panel; status + frame to /dev/shm/officeboard |
+| `core/pixels.py` | Pillow drawing with the .bdf fonts, `text_strip` + `marquee` for scrolling, `led_preview` |
+| `modules/paneltest.py` | Panel test module |
+| `modules/planned.py` | Stand-ins for modules not built yet (shown on the Modules page as "coming in step N") |
+| `web/` | Flask app on :8080. Modules page forms are built from each module's `fields` |
+| `tools/preview.py` | preview.gif / preview.png of the rotation, simulated time |
+| `tools/dev.py` | Whole board on a computer with the fake panel, web UI on localhost:8080 |
+| `tests/` | Offline tests with a fake `rgbmatrix` (tests/fakes) |
+
+To add a module: subclass `Module` in modules/, list it in `core/registry.py` in place of its planned
+stand-in, add tests, and preview it.
 
 ## Working rules
 
+- Test before committing: `python3 -m unittest discover tests` (no panel or internet needed).
+- Visual changes: `python3 tools/preview.py` and show Joe the GIF (or a frame of it).
 - This folder is its own git repo, separate from the pick5 repo in the parent folder.
 - Never commit `config/*.json` (secrets, Pi settings).
 - License is GPL-3.0. Keep credits in README.md. When copying a file from itsposttime or the plane

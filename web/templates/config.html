@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Office Board — Settings</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% set page = 'config' %}{% include '_header.html' %}
+<div class="ticker">Display settings apply within seconds · Panel hardware settings apply after Restart</div>
+<div class="content">
+
+  <div class="section">
+    <div class="section-header">Display</div>
+    <div class="section-body">
+      <div class="field"><label for="d-bright">Brightness (%)</label>
+        <input id="d-bright" type="number" min="1" max="100" data-path="config.display.brightness" data-type="int"></div>
+      <div class="field"><label for="d-page">Page flip (seconds)</label>
+        <input id="d-page" type="number" min="2" max="60" data-path="config.display.page_seconds" data-type="int">
+        <span class="hint">When a module has more than one screen.</span></div>
+      <div class="field"><label for="d-speed">Scroll speed (pixels a second)</label>
+        <input id="d-speed" type="number" min="5" max="80" data-path="config.display.scroll_speed" data-type="int">
+        <span class="hint">24 is a gentle reading pace. The panel is 64 pixels wide.</span></div>
+      <div class="field"><label for="d-fps">Frames a second</label>
+        <input id="d-fps" type="number" min="10" max="60" data-path="config.display.fps" data-type="int">
+        <span class="hint">Higher makes scrolling smoother. Lower it if the Pi runs hot.</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Panel hardware</div>
+    <div class="section-body">
+      <div class="field"><label for="d-gpio">GPIO slowdown</label>
+        <input id="d-gpio" type="number" min="0" max="5" data-path="config.display.gpio_slowdown" data-type="int">
+        <span class="hint">2 for a Pi 3A+. Raise it if the panel flickers.</span></div>
+      <div class="field"><label for="d-type">Panel driver chip</label>
+        <select id="d-type" data-path="config.display.panel_type"><option value="">Standard (most panels)</option><option value="FM6126A">FM6126A</option><option value="FM6127">FM6127</option></select>
+        <span class="hint">Try FM6126A if the panel stays dark or shows garbage. Common on 3mm panels.</span></div>
+      <div class="field"><label for="d-seq">LED color order</label>
+        <select id="d-seq" data-path="config.display.led_rgb_sequence"><option>RGB</option><option>RBG</option><option>GRB</option><option>GBR</option><option>BRG</option><option>BGR</option></select>
+        <span class="hint">Change only if the Panel test's color bars look swapped.</span></div>
+      <div class="field checkbox"><input type="checkbox" id="pwm" data-path="config.display.hat_pwm_enabled"><label for="pwm">Bonnet PWM solder bridge installed</label></div>
+      <div class="field"><label for="d-mux">Multiplexing</label>
+        <input id="d-mux" type="number" min="0" max="22" data-path="config.display.multiplexing" data-type="int">
+        <span class="hint">Leave at 0 unless the picture is scrambled into strips.</span></div>
+      <div class="field"><label for="d-row">Row address type</label>
+        <input id="d-row" type="number" min="0" max="5" data-path="config.display.row_address_type" data-type="int">
+        <span class="hint">Leave at 0 unless only part of the panel lights.</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Wi-Fi</div>
+    <div class="section-body single">
+      <div class="stat" id="wifi-now">Checking…</div>
+      <div id="wifi-saved"></div>
+      <div id="wifi-controls">
+        <div class="field"><label for="wifi-ssid">Add a network</label>
+          <div class="wifi-pick">
+            <select id="wifi-ssid"><option value="">Press Scan to list networks in range</option></select>
+            <button class="btn btn-reset" id="wifi-scan" type="button">Scan</button>
+          </div>
+          <input type="text" id="wifi-other" placeholder="Network name" autocomplete="off" hidden>
+        </div>
+        <div class="field"><label for="wifi-pass">Password</label>
+          <input type="password" id="wifi-pass" autocomplete="new-password">
+          <span class="hint">Leave empty for an open network.</span></div>
+        <div class="wifi-actions">
+          <button class="btn btn-reset" id="wifi-add" type="button">Save network</button>
+          <button class="btn btn-save" id="wifi-add-switch" type="button">Save and switch now</button>
+        </div>
+        <div class="hint">The board joins any saved network whenever it's in range. Wi-Fi changes apply right away;
+          there's no need to press Save.</div>
+      </div>
+      <div id="wifi-msg"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-save" id="save">Save</button>
+    <button class="btn btn-reset" id="restart">Restart display</button>
+    <button class="btn btn-reset" id="shutdown">Shut down</button>
+    <span id="msg"></span>
+  </div>
+</div>
+
+<script>
+const fields = [...document.querySelectorAll("[data-path]")];
+const get = (o, p) => p.split(".").reduce((a, k) => a == null ? a : a[k], o);
+function set(o, p, v) { const ks = p.split("."); ks.slice(0, -1).reduce((a, k) => a[k] ??= {}, o)[ks.at(-1)] = v; }
+function msg(t, ok) { const m = document.getElementById("msg"); m.textContent = t; m.className = ok ? "ok" : "err"; }
+
+async function load() {
+  const d = await (await fetch("/api/config")).json();
+  fields.forEach(f => {
+    const v = get(d, f.dataset.path);
+    if (f.type === "checkbox") f.checked = !!v; else if (v != null) f.value = v;
+  });
+}
+
+document.getElementById("save").onclick = async () => {
+  const body = {};
+  fields.forEach(f => {
+    let v = f.type === "checkbox" ? f.checked : f.value;
+    if (f.dataset.type === "int") v = parseInt(v, 10);
+    set(body, f.dataset.path, v);
+  });
+  const r = await fetch("/api/config", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const d = await r.json();
+  if (d.ok) { msg("Saved", true); load(); } else msg("Save failed: " + (d.error || r.status), false);
+};
+
+document.getElementById("restart").onclick = async () => {
+  try {
+    const d = await (await fetch("/api/restart", {method: "POST"})).json();
+    d.ok ? msg("Restarting… the panel will be back in about 20 seconds", true) : msg(d.error, false);
+  } catch (e) { msg("Couldn't reach the board", false); }
+};
+
+document.getElementById("shutdown").onclick = async () => {
+  if (!confirm("Shut down the office board?\n\nThe panel and this page will stop. To start it again, unplug the power and plug it back in.")) return;
+  try {
+    const d = await (await fetch("/api/shutdown", {method: "POST"})).json();
+    if (d.ok) msg("Shutting down… unplug once the Pi's green light stops flickering (about 30 seconds)", true);
+    else msg(d.error, false);
+  } catch (e) { msg("Couldn't reach the board", false); }
+};
+
+// ---------- Wi-Fi ----------
+// Network names come from whatever is nearby, so they only ever go into the page as text.
+const el = id => document.getElementById(id);
+function wmsg(t, ok) { const m = el("wifi-msg"); m.textContent = t; m.className = ok ? "ok" : "err"; }
+function node(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+async function post(url, body) {
+  const r = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  return r.json();
+}
+
+function confirmSwitch(name, current) {
+  return confirm(`Switch the board to ${name} now?
+
+This page will stop responding here. Connect this phone or computer to ` +
+    `${name}, then open http://officeboard.local:8080.
+
+If the board can't join ${name}, it goes back to ` +
+    `${current || "its current network"} within about a minute.`);
+}
+
+let wifiCurrent = null, wifiPoll = null;
+async function wifiLoad() {
+  let d;
+  try { d = await (await fetch("/api/wifi")).json(); } catch (e) { return; }
+  const now = el("wifi-now");
+  if (!d.available) {
+    now.textContent = d.error;
+    el("wifi-controls").hidden = true;
+    return;
+  }
+  wifiCurrent = d.current;
+  now.replaceChildren();
+  if (d.current) now.append("Connected to ", node("b", null, d.current), ` · signal ${d.signal}%`);
+  else now.append("Not connected to Wi-Fi");
+
+  const list = el("wifi-saved");
+  list.replaceChildren();
+  if (d.saved.length) list.append(node("div", "wifi-label", "Saved networks"));
+  for (const n of d.saved) {
+    const row = node("div", "wifi-row");
+    row.append(node("span", "wifi-name", n.ssid));
+    if (n.active) row.append(node("span", "wifi-tag", "Connected"));
+    else {
+      const go = node("button", "btn btn-reset btn-small", "Switch now");
+      go.type = "button";
+      go.onclick = async () => {
+        if (!confirmSwitch(n.ssid, wifiCurrent)) return;
+        const r = await post("/api/wifi/switch", {name: n.name});
+        r.ok ? switching(n.ssid) : wmsg(r.error, false);
+      };
+      const forget = node("button", "btn btn-reset btn-small", "Forget");
+      forget.type = "button";
+      forget.onclick = async () => {
+        if (!confirm(`Forget ${n.ssid}? The board won't join it again unless you add it back.`)) return;
+        const r = await post("/api/wifi/forget", {name: n.name});
+        r.ok ? (wmsg(`Forgot ${n.ssid}`, true), wifiLoad()) : wmsg(r.error, false);
+      };
+      row.append(go, forget);
+    }
+    list.append(row);
+  }
+
+  const s = d.last_switch || {};
+  if (s.state === "ok") { wmsg(`Switched to ${s.name} at ${s.at}`, true); stopPoll(); }
+  else if (s.state === "failed") {
+    wmsg(`Couldn't join ${s.name}: ${s.error}` + (s.previous ? `. Back on ${s.previous}.` : ""), false); stopPoll();
+  }
+}
+function stopPoll() { if (wifiPoll) { clearInterval(wifiPoll); wifiPoll = null; } }
+function switching(name) {
+  wmsg(`Switching to ${name}… If it works, this page stops responding here: connect to ${name} and reopen the page.`, true);
+  stopPoll();
+  wifiPoll = setInterval(wifiLoad, 5000);
+}
+
+el("wifi-ssid").onchange = () => { el("wifi-other").hidden = el("wifi-ssid").value !== "__other__"; };
+
+el("wifi-scan").onclick = async () => {
+  wmsg("Looking for networks…", true);
+  const r = await (await fetch("/api/wifi/scan")).json();
+  if (!r.ok) return wmsg(r.error, false);
+  const sel = el("wifi-ssid");
+  sel.replaceChildren(node("option", null, "Choose a network…"));
+  sel.firstChild.value = "";
+  for (const n of r.networks) {
+    const o = node("option", null, `${n.ssid}  (${n.signal}%${n.security ? "" : ", open"})`);
+    o.value = n.ssid;
+    o.dataset.security = n.security;
+    sel.append(o);
+  }
+  const other = node("option", null, "Other (type the name)…");
+  other.value = "__other__";
+  sel.append(other);
+  wmsg(`Found ${r.networks.length} network${r.networks.length === 1 ? "" : "s"}`, true);
+};
+
+async function wifiAdd(andSwitch) {
+  const sel = el("wifi-ssid");
+  const ssid = sel.value === "__other__" ? el("wifi-other").value.trim() : sel.value;
+  if (!ssid) return wmsg("Choose a network first (press Scan), or pick Other and type its name.", false);
+  if (andSwitch && !confirmSwitch(ssid, wifiCurrent)) return;
+  const security = sel.selectedOptions[0]?.dataset.security || "";
+  const r = await post("/api/wifi/add", {ssid, password: el("wifi-pass").value, security, switch: andSwitch});
+  if (!r.ok) return wmsg(r.error, false);
+  el("wifi-pass").value = "";
+  if (andSwitch) switching(ssid);
+  else { wmsg(`Saved ${ssid}. The board will join it whenever it's in range.`, true); wifiLoad(); }
+}
+el("wifi-add").onclick = () => wifiAdd(false);
+el("wifi-add-switch").onclick = () => wifiAdd(true);
+
+wifiLoad();
+load();
+</script>
+</body>
+</html>

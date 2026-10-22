@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Office Board — Logs</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% set page = 'logs' %}{% include '_header.html' %}
+<div class="ticker">Most recent 200 lines from the officeboard service · refreshes every 10 seconds</div>
+<div class="content">
+  <div class="section"><pre class="log" id="log">Loading…</pre></div>
+</div>
+<script>
+async function load() {
+  const d = await (await fetch("/api/logs?n=200")).json();
+  const el = document.getElementById("log");
+  el.textContent = d.error ? "Couldn't read logs: " + d.error : (d.lines.join("\n") || "No log lines yet.");
+  el.scrollTop = el.scrollHeight;
+}
+load(); setInterval(load, 10000);
+</script>
+</body>
+</html>
