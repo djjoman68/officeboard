@@ -14,7 +14,7 @@ from datetime import datetime
 
 import config
 from core import pixels, registry, sleep
-from core.module import BoardInfo, Fetcher
+from core.module import BoardInfo
 from core.scheduler import Scheduler
 
 log = logging.getLogger("display")
@@ -107,8 +107,7 @@ class Display:
         self.apply_config(cfg)
         if start_fetchers:
             for m in self.modules.values():
-                if m.fetch_seconds:
-                    Fetcher(m).start()
+                m.start()
 
     # ---------- settings ----------
     def apply_config(self, cfg):

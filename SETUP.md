@@ -122,6 +122,7 @@ Open **http://officeboard.local:8080** on your phone or computer.
   tomorrow.io; a separate key from the odds board's), then Save. Weather appears within a minute.
 - **Settings -> Stocks**: a **Finnhub** key (free at finnhub.io). Then **Modules -> Stocks -> Settings**:
   your stocks, one per line, and turn Stocks on.
+- **Modules -> NYRA racing**: turn it on; its Settings has the track, near-post and take-over options.
 - **Settings -> Sleep mode**: set the hours (and any all-day days) and the sleep brightness.
 - The panel takes turns between **Clock & weather** and the **Panel test**: eight colour bars (red,
   green, blue, white, yellow, cyan, magenta, gray) and scrolling text with the frame rate.

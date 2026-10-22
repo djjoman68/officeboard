@@ -5,6 +5,7 @@ import unittest
 from datetime import datetime, timedelta
 
 import support  # noqa: F401  (stand-in panel library, paths)
+from support import colours
 from support import TempFiles
 
 import config
@@ -62,42 +63,42 @@ class TestClockScreens(unittest.TestCase):
         self.assertIsNotNone(img.crop((40, 6, 64, 12)).getbbox())      # date
         for x in (0, 21, 42):
             self.assertIsNotNone(img.crop((x, 12, x + 21, 32)).getbbox(), x)
-        colours = set(img.getdata())
-        self.assertIn(clock.CLOCK_DAY, colours)
-        self.assertIn(clock.DAY_NAME, colours)
+        seen = colours(img)
+        self.assertIn(clock.CLOCK_DAY, seen)
+        self.assertIn(clock.DAY_NAME, seen)
 
     def test_sun_page_at_the_end_of_each_turn(self):
         m = module(sample_data())
         m.settings = dict(m.settings, seconds=20, sun_seconds=6)
         forecast, sun = m.frame(NOW, 2), m.frame(NOW, 15)
-        self.assertIn(clock.DAY_NAME, set(forecast.getdata()))
-        self.assertIn(clock.SUNRISE, set(sun.getdata()))
-        self.assertIn(clock.SUNSET, set(sun.getdata()))
-        self.assertNotIn(clock.DAY_NAME, set(sun.getdata()))
-        self.assertIn(clock.SUNRISE, set(m.frame(NOW, 55).getdata()))   # still works on a long single turn
+        self.assertIn(clock.DAY_NAME, colours(forecast))
+        self.assertIn(clock.SUNRISE, colours(sun))
+        self.assertIn(clock.SUNSET, colours(sun))
+        self.assertNotIn(clock.DAY_NAME, colours(sun))
+        self.assertIn(clock.SUNRISE, colours(m.frame(NOW, 55)))   # still works on a long single turn
         m.settings["sun_seconds"] = 0
-        self.assertNotIn(clock.SUNRISE, set(m.frame(NOW, 15).getdata()))
+        self.assertNotIn(clock.SUNRISE, colours(m.frame(NOW, 15)))
 
     def test_without_weather_the_clock_still_shows(self):
         m = module(None)
         self.assertTrue(m.has_content(NOW))
         img = m.frame(NOW, 0)
-        self.assertIn(clock.CLOCK_UNKNOWN, set(img.getdata()))         # red clock and ":("
+        self.assertIn(clock.CLOCK_UNKNOWN, colours(img))         # red clock and ":("
         self.assertIsNone(img.crop((0, 12, 64, 32)).getbbox())         # no forecast
 
     def test_alert_shrinks_the_clock(self):
         m = module(sample_data(alerts=[{"text": "TORN WRN", "color": "red"}]))
         img = m.frame(NOW, 0)
-        self.assertIn(clock.ALERT_COLOURS["red"], set(img.getdata()))
-        self.assertNotIn(clock.CLOCK_DAY, set(img.crop((0, 7, 40, 12)).getdata()))   # small clock, top rows only
+        self.assertIn(clock.ALERT_COLOURS["red"], colours(img))
+        self.assertNotIn(clock.CLOCK_DAY, colours(img.crop((0, 7, 40, 12))))   # small clock, top rows only
         m.board.location["weather_alerts"] = False
-        self.assertNotIn(clock.ALERT_COLOURS["red"], set(m.frame(NOW, 0).getdata()))
+        self.assertNotIn(clock.ALERT_COLOURS["red"], colours(m.frame(NOW, 0)))
 
     def test_sleep_screen_is_time_and_date_only(self):
         img = module(sample_data()).sleep_frame(NOW)
-        self.assertIn(clock.CLOCK_DAY, set(img.getdata()))
-        self.assertIn(clock.SLEEP_DATE, set(img.getdata()))
-        self.assertNotIn(clock.DAY_NAME, set(img.getdata()))
+        self.assertIn(clock.CLOCK_DAY, colours(img))
+        self.assertIn(clock.SLEEP_DATE, colours(img))
+        self.assertNotIn(clock.DAY_NAME, colours(img))
 
     def test_frames_are_reused_within_the_minute(self):
         m = module(sample_data())
@@ -282,8 +283,8 @@ class TestSleepOnThePanel(TempFiles):
         self.assertTrue(d.asleep)
         self.assertIsNone(d.current)
         self.assertEqual(d.matrix.brightness, 10)
-        self.assertIn(clock.SLEEP_DATE, set(img.getdata()))
-        self.assertNotIn(clock.DAY_NAME, set(img.getdata()))
+        self.assertIn(clock.SLEEP_DATE, colours(img))
+        self.assertNotIn(clock.DAY_NAME, colours(img))
         d.step(NOW, 1.0)                                       # morning: back to the rotation
         self.assertFalse(d.asleep)
         self.assertEqual(d.matrix.brightness, 80)

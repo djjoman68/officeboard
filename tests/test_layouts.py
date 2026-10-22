@@ -3,6 +3,7 @@ import unittest
 from datetime import datetime
 
 import support  # noqa: F401  (stand-in panel library, paths)
+from support import colours
 
 import config
 from core import layouts, pixels
@@ -50,7 +51,7 @@ class TestTickers(unittest.TestCase):
         b = layouts.ticker(self.strip, 2, 24, label="Stocks")
         self.assertNotEqual(a.crop((0, 8, 64, 32)).tobytes(), b.crop((0, 8, 64, 32)).tobytes())
         self.assertEqual(a.crop((0, 0, 64, 7)).tobytes(), b.crop((0, 0, 64, 7)).tobytes())     # label stays
-        self.assertIn(layouts.LABEL, set(a.getdata()))
+        self.assertIn(layouts.LABEL, colours(a))
 
     def test_split_keeps_the_bar_still(self):
         bar = pixels.Image.new("RGB", (64, 9), (0, 200, 0))

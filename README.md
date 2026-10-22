@@ -12,10 +12,10 @@ modules you turn on and off from a web page:
 It also tests scrolling text against static pages, to see which reads better on a small panel.
 A sleep mode shows just the clock and date at a dimmer brightness on a schedule.
 
-**Status (Oct 2026):** foundation, Clock & weather, Stocks, sleep mode and the Roll layout built.
-NYRA, MLB and NFL come next. See [docs/plan.md](docs/plan.md).
+**Status (Oct 2026):** foundation, Clock & weather, Stocks, NYRA racing, sleep mode and the Roll layout
+built. MLB and NFL come next. See [docs/plan.md](docs/plan.md).
 
-![The panel's screens: clock & weather, sunrise and sunset, a weather alert, sleep mode, panel test, stocks](docs/screenshots/panel-screens.png)
+![The panel's screens: clock & weather, sunrise and sunset, a weather alert, sleep mode, panel test, stocks, NYRA racing](docs/screenshots/panel-screens.png)
 
 ## Web UI
 
@@ -66,8 +66,8 @@ built on the plane tracker by **c0wsaysmoo**
 ([plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-tracker-rgb-pi)), based on
 **Colin Waddell's** [FlightTracker](https://github.com/ColinWaddell/FlightTracker).
 
-The pixel fonts, weather icons, clock & weather layout, weather alerts, web UI, installer and Wi-Fi
-settings come from those projects; files copied from
+The pixel fonts, weather icons, clock & weather layout, weather alerts, NYRA race board, web UI,
+installer and Wi-Fi settings come from those projects; files copied from
 them say so at the top.
 
 Panel driver: [hzeller/rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix), installed
@@ -77,4 +77,4 @@ Released under the **GNU General Public License v3.0**, the same license as Flig
 See [LICENSE](LICENSE).
 
 Weather from Tomorrow.io and the National Weather Service; stock quotes from Finnhub. Race data is read from nyra.com for
-personal, non-commercial display. Screenshots use made-up sample weather and quotes.
+personal, non-commercial display. Screenshots use made-up sample weather, quotes and races.

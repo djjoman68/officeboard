@@ -36,7 +36,8 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 - Oct 22 2026: Joe picked **Roll** (layout C) for the board; it's the default. Design new modules'
   pages first (they roll); keep ticker_items too.
 - Oct 22 2026: step 4 built: Stocks module (Finnhub; indexes via DIA/SPY/QQQ). Tested offline only.
-  Next: step 5 (NYRA).
+- Oct 22 2026: step 5 built: NYRA module on itsposttime's racing code (racing/), rotation, near post
+  (comes on at 3 MTP), take-over. Tested offline only. Next: step 6 (MLB + NFL).
 - Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
 
 ## Layout
@@ -55,6 +56,8 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | `modules/clock.py` | Clock & weather: Tomorrow.io fetch + disk cache, itsposttime's layout, sun at end of turn, alerts, sleep screen |
 | `modules/nws.py` | Severe weather alerts (from itsposttime) |
 | `modules/stocks.py` | Stocks: Finnhub quotes + market status, Markets page, one page (or 3 rows) per stock |
+| `modules/nyra.py` | NYRA module: card before the window, race in it, near post (takeover at hold_mtp), take-over mode |
+| `racing/nyra.py`, `racing/feed.py`, `racing/render.py` | itsposttime's NYRA reader, polling feed (settings from the module) and race screens |
 | `modules/demo.py` | Scroll demo: made-up stocks, race, games for comparing layouts; remove when real modules exist |
 | `modules/paneltest.py` | Panel test module (opts out of layouts) |
 | `modules/planned.py` | Stand-ins for modules not built yet (shown on the Modules page as "coming in step N") |
@@ -77,7 +80,8 @@ sets `supports_layouts = False` (the panel test).
 - Never commit `config/*.json` (secrets, Pi settings).
 - License is GPL-3.0. Keep credits in README.md. When copying a file from itsposttime or the plane
   tracker, keep its notes at the top and add "Modified for the office board".
-- Keep NYRA polling gentle: use itsposttime's limits, never faster.
+- Keep NYRA polling gentle: use itsposttime's limits, never faster. The racing/ files and
+  tests/test_nyra_reader.py are itsposttime's; fix NYRA page changes in both projects.
 - Data sources are free tiers or unofficial feeds: cache results, poll no faster than needed, and keep
   showing the last good data when a fetch fails.
 - The Pi runs one copy only (lock file + systemd).

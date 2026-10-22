@@ -42,3 +42,8 @@ class TempFiles(unittest.TestCase):
         if self.web:
             self.web.STATUS_FILE, self.web.FRAME_FILE = self._saved_web
         shutil.rmtree(self.tmp, ignore_errors=True)
+
+
+def colours(img):
+    """Every colour in a picture (works on old and new Pillow alike)."""
+    return {c for _, c in img.getcolors(maxcolors=img.width * img.height)}

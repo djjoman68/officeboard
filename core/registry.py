@@ -6,7 +6,8 @@ import config
 from modules.clock import ClockWeather
 from modules.demo import ScrollDemo
 from modules.paneltest import PanelTest
-from modules.planned import Mlb, Nfl, Nyra
+from modules.nyra import Nyra
+from modules.planned import Mlb, Nfl
 from modules.stocks import Stocks
 
 MODULE_CLASSES = [ClockWeather, Stocks, Nyra, Mlb, Nfl, ScrollDemo, PanelTest]

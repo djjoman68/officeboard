@@ -6,8 +6,8 @@
 Runs the real display loop on the stand-in panel with simulated time, and writes:
   preview.gif   animated, for scrolling and page changes
   preview.png   a sheet of each screen: clock & weather, sunrise/sunset, an alert, sleep mode, panel test,
-                stocks
-The clock uses made-up sample weather unless the board has fetched real weather; stocks use sample quotes.
+                stocks, NYRA
+The clock uses made-up sample weather unless the board has fetched real weather; stocks use sample quotes; NYRA a sample card and race.
 """
 import os
 import sys
@@ -23,6 +23,7 @@ from core.display import Display              # noqa: E402
 from core.pixels import led_preview           # noqa: E402
 from test_clock import sample_data            # noqa: E402
 import test_stocks                            # noqa: E402
+import test_nyra                              # noqa: E402
 
 GIF_FPS = 25        # GIFs can't go much faster; the panel itself runs at the fps setting
 DOT = 6
@@ -59,6 +60,15 @@ stocks.settings["per_page"] = "3"
 screens.append(("Stocks: three per page", stocks.pages(start)[1]))
 stocks.data = test_stocks.sample_data(session=None)
 screens.append(("Stocks: after the close", stocks.pages(start)[0]))
+racing = d.modules["nyra"]
+racing.feed = test_nyra.FakeFeed()
+noon = test_nyra.NOON
+card_pages = racing.pages(noon)
+screens += [("NYRA: today's card (sample)", card_pages[0]), ("NYRA: Pick 5s still to start", card_pages[-1])]
+racing.feed = test_nyra.FakeFeed(race=test_nyra.race_at(8))
+screens.append(("NYRA: race board, 8 MTP", racing.pages(start)[0]))
+racing.settings = dict(racing.settings, view="big_mtp")
+screens.append(("NYRA: big MTP view", racing.pages(start)[0]))
 pad, cap = 16, 22
 tiles = [(title, led_preview(img, dot=DOT)) for title, img in screens]
 w = tiles[0][1].width + 2 * pad

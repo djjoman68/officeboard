@@ -56,6 +56,12 @@ def normalize_field(field, value):
         return value if isinstance(value, bool) else default
     if kind == "select":
         return value if value in [o[0] for o in field["options"]] else default
+    if kind == "time":
+        try:
+            h, m = (int(x) for x in str(value).split(":"))
+            return f"{h:02d}:{m:02d}" if 0 <= h < 24 and 0 <= m < 60 else default
+        except ValueError:
+            return default
     if kind == "list":
         if not isinstance(value, list):
             return list(default)
@@ -125,6 +131,11 @@ class Module:
         return self.built and self.settings["enabled"]
 
     # ---------- fetcher ----------
+    def start(self):
+        """Start keeping the data fresh in the background (the display calls this once)."""
+        if self.fetch_seconds:
+            Fetcher(self).start()
+
     def fetch(self, now):
         """Return fresh data. Runs in the background thread. Raise on failure."""
         return None

@@ -53,7 +53,7 @@ function input(f, value) {
     inp = node("textarea"); inp.rows = 5; inp.value = (value || []).join("\n");
   } else {
     inp = node("input");
-    inp.type = f.type === "int" ? "number" : f.type === "bool" ? "checkbox" : "text";
+    inp.type = f.type === "int" ? "number" : f.type === "bool" ? "checkbox" : f.type === "time" ? "time" : "text";
     if (f.type === "int") { inp.min = f.min; inp.max = f.max; }
     if (f.type === "bool") inp.checked = !!value; else if (f.type !== "list") inp.value = value;
   }

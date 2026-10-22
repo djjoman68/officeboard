@@ -3,6 +3,7 @@ import unittest
 from datetime import datetime
 
 import support  # noqa: F401  (stand-in panel library, paths)
+from support import colours
 from support import TempFiles
 
 import config
@@ -141,11 +142,11 @@ class TestStocksScreens(unittest.TestCase):
         m = module(data=self.data())
         pages = m.pages(NOW)
         self.assertEqual(len(pages), 3)
-        markets = set(pages[0].getdata())
+        markets = colours(pages[0])
         self.assertIn(stocks.UP, markets)            # DOW, S&P up
         self.assertIn(stocks.DOWN, markets)          # NASDAQ down
-        self.assertIn(stocks.UP, set(pages[1].getdata()))      # AAPL up
-        self.assertIn(stocks.DOWN, set(pages[2].getdata()))    # MSFT down
+        self.assertIn(stocks.UP, colours(pages[1]))      # AAPL up
+        self.assertIn(stocks.DOWN, colours(pages[2]))    # MSFT down
 
     def test_three_per_page(self):
         m = module(("AAPL", "MSFT", "AAPL"), per_page="3", data=self.data())
@@ -157,7 +158,7 @@ class TestStocksScreens(unittest.TestCase):
     def test_session_label(self):
         for session, colour in (("regular", stocks.UP), ("pre-market", stocks.pixels.YELLOW), (None, stocks.DIM)):
             page = module(data=self.data(session)).pages(NOW)[0]
-            self.assertIn(colour, set(page.crop((0, 0, 64, 7)).getdata()), session)
+            self.assertIn(colour, colours(page.crop((0, 0, 64, 7))), session)
 
     def test_big_prices_still_fit(self):
         m = module(("BRK.A",), data=self.data(symbols=("BRK.A",)))

@@ -172,6 +172,14 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    Finnhub key goes under Settings → Stocks; the list is edited on the Modules page, one per line
    (reorder by moving lines).
 5. **NYRA**: rotation, hold near post, take over.
+   **Done Oct 22 2026** (tested offline with itsposttime's sample page and tests; not yet live). Reuses
+   itsposttime's reader, feed, screens and polling limits unchanged (racing/), so the race board, big MTP,
+   today's card and Pick 5 pages look exactly as on the odds board, and roll between pages. Before the
+   race window the turn shows today's card (from 9am, `card_start`); in the window, the race. The Board
+   page has itsposttime's Today's card table. One reading of "hold near post", open to change: at 3 MTP
+   the race board comes on straight away even if another module is showing, rather than waiting for
+   NYRA's next turn, then stays until the board moves to the next race. All settings (track, view, near
+   post on/off and minutes, take-over, race window, odds refresh, card start) are on the Modules page.
 6. **MLB + NFL** schedules and scores.
 7. **Odds** on MLB and NFL.
 

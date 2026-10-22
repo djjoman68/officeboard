@@ -19,6 +19,11 @@
     </div>
   </div>
 
+  <div class="section" id="card-section" hidden>
+    <div class="section-header" id="card-title">Today's card</div>
+    <div class="section-body single"><div class="card-wrap" id="card"></div></div>
+  </div>
+
   <div class="section">
     <div class="section-header">Sleep</div>
     <div class="section-body single">
@@ -86,6 +91,7 @@ async function refresh() {
         : `Nothing to show. Turn a module on from the <a href="/modules">Modules</a> page.`;
     }
     const mods = await (await fetch("/api/modules")).json();
+    renderCard(mods.modules.find(m => m.id === "nyra"));
     el("rotation").innerHTML = mods.modules.filter(m => m.built).map(m => {
       const st = m.status || {};
       const state = !m.settings.enabled ? "off" : st.has_content ? "on" : "waiting";
@@ -97,6 +103,42 @@ async function refresh() {
   } catch (e) {
     el("ticker").textContent = "Can't reach the board";
   }
+}
+
+// Today's card (from itsposttime): every race with its post time, the next race highlighted
+const TRACK_NAMES = {saratoga: "Saratoga", belmont: "Belmont Park"};
+function fmtPost(iso) {
+  if (!iso) return "";
+  const [h, m] = iso.slice(11, 16).split(":").map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+let lastCard = null;
+function renderCard(m) {
+  const st = (m && m.settings.enabled && m.status) || null;
+  el("card-section").hidden = !st;
+  if (!st) { lastCard = null; return; }
+  const key = JSON.stringify([m.settings.track, st.track, st.card]);
+  if (key === lastCard) return;
+  lastCard = key;
+  const name = TRACK_NAMES[st.track] || "";
+  el("card-title").textContent = name ? `Today's card · ${name}` : "Today's card";
+  const box = el("card");
+  if (!st.track) {
+    box.innerHTML = `<div class="hint">No racing at ${m.settings.track === "auto" ? "Saratoga or Belmont" : esc(TRACK_NAMES[m.settings.track])} today.</div>`;
+    return;
+  }
+  if (!st.card || !st.card.length) { box.innerHTML = `<div class="hint">Reading today's card…</div>`; return; }
+  const until = n => n >= 60 ? `in ${Math.floor(n / 60)}h ${n % 60}m` : `${n} MTP`;
+  const label = c => c.state === "done" ? "Off" : c.state === "next" ? `Next · ${until(c.mtp)}` : "";
+  const seqs = st.card.flatMap(c => (c.pick5s || []).map(p => ({...p, post: c.post_time})));
+  const summary = seqs.length ? `<div class="p5-summary">` + seqs.map(p =>
+    `<span><b>${esc(p.name)}</b> · races ${esc(p.first)}–${esc(p.last)} · ${fmtPost(p.post)}</span>`).join("") + `</div>` : "";
+  const tags = c => (c.pick5s || []).map(p =>
+    `<span class="p5-tag">${esc(p.label === "PICK 5" ? "Pick 5" : p.label.split(" ")[0] + " P5")}</span>`).join("");
+  box.innerHTML = summary + `<table class="card"><thead><tr><th>Race</th><th>Post (ET)</th><th>Distance</th><th>Surface</th>
+    <th>Field</th><th></th></tr></thead><tbody>` + st.card.map(c => `<tr class="${esc(c.state)}">
+    <td class="num">${esc(c.race)}</td><td>${fmtPost(c.post_time)}${tags(c)}</td><td>${esc(c.distance)}</td>
+    <td>${esc(c.surface)}</td><td class="num">${esc(c.runners)}</td><td class="state">${label(c)}</td></tr>`).join("") + `</tbody></table>`;
 }
 
 // "2026-10-22T18:00" -> "6:00 PM" today, or "Sat 6:00 PM" another day
