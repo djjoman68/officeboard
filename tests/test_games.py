@@ -320,14 +320,14 @@ class TestTeamLook(support.TempFiles):
 
 
 class TestCompactOdds(unittest.TestCase):
-    """Odds sit on each team's row, like a sportsbook: NFL spreads, MLB moneylines. (Joe, Oct 22 2026)"""
+    """Odds sit on the team rows: the NFL spread on the favourite's row only, MLB moneylines on both. (Joe, Oct 22 2026)"""
 
     def test_nfl_spread_per_team(self):
         m = module(Nfl, nfl_week())
         g = m.games(NOW)
-        self.assertEqual(m.row_odds(g[0]), {"home": "-3", "away": "+3"})          # CHI -3 at home
-        self.assertEqual(m.row_odds(g[1]), {"away": "-2.5", "home": "+2.5"})      # SF -2.5 on the road
-        self.assertEqual(m.row_odds(g[2]), {"away": "PK", "home": "PK"})          # EVEN
+        self.assertEqual(m.row_odds(g[0]), {"home": "-3"})                         # CHI -3 at home: favourite only
+        self.assertEqual(m.row_odds(g[1]), {"away": "-2.5"})                       # SF -2.5 on the road
+        self.assertEqual(m.row_odds(g[2]), {"home": "PK"})                         # EVEN: once, home row
         self.assertEqual(m.bottom_odds(g[0]), "50.5")
 
     def test_mlb_moneyline_per_team(self):
@@ -340,7 +340,7 @@ class TestCompactOdds(unittest.TestCase):
         m = module(Nfl, nfl_week())
         page = m.pages(NOW)[1]                                                  # SF @ ATL, Sunday
         self.assertIn(games.ODDS, colours(page.crop((40, 0, 64, 12))))          # SF -2.5 on the top row
-        self.assertIn(games.ODDS, colours(page.crop((40, 13, 64, 25))))         # ATL +2.5 below
+        self.assertNotIn(games.ODDS, colours(page.crop((40, 13, 64, 25))))      # nothing for ATL, the underdog
         self.assertIn(games.TIME, colours(page.crop((0, 26, 30, 32))))          # SU 1p bottom left
         self.assertIn(games.ODDS, colours(page.crop((44, 26, 64, 32))))         # the total bottom right
         self.assertEqual(m.when(m.games(NOW)[1], NOW, short_day=True, compact=True), "SU 1p")

@@ -433,10 +433,11 @@ class Nfl(Games):
         return lines
 
     def row_odds(self, game):
-        """Each team's spread on its own row, the way sportsbooks list it: CHI -3 / NE +3; PK for EVEN."""
+        """The spread on the favourite's row only (Joe, Oct 22 2026): CHI -3. A pick'em shows PK on the
+        home team's row."""
         details = (game["odds"].get("details") or "").upper().strip()
         if details in ("EVEN", "PK", "PICK"):
-            return {"away": "PK", "home": "PK"}
+            return {"home": "PK"}
         abbr, _, line = details.partition(" ")
         try:
             points = abs(float(line))
@@ -445,10 +446,7 @@ class Nfl(Games):
         sides = {game[s]["abbr"]: s for s in ("away", "home")}
         if abbr not in sides:
             return {}
-        number = f"{points:g}"
-        fav = sides[abbr]
-        dog = "home" if fav == "away" else "away"
-        return {fav: f"-{number}", dog: f"+{number}"}
+        return {sides[abbr]: f"-{points:g}"}
 
     def bottom_odds(self, game):
         total = game["odds"].get("total") if game.get("odds") else None
