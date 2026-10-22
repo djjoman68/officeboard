@@ -104,8 +104,10 @@ Do this early: it shapes how every module draws.
 - Source: ESPN's scoreboard feed (free, unofficial), which usually includes spread, total and moneyline.
 - Off-season: skipped.
 
-To verify before building 4 and 5: ESPN's feed reliably has MLB moneylines and NFL spread/total. If
-not, The Odds API (free tier, about 500 calls/month) is the fallback.
+Verified Oct 22 2026: ESPN's feed has DraftKings MLB moneylines (both teams), NFL spread and total,
+and live scores and status, so it's the one source for both leagues (MLB games too, instead of
+statsapi.mlb.com). The Odds API stays the fallback if ESPN ever drops the odds. ESPN's MLB feed
+defaults to the next day with games, so the module asks for today's date.
 
 ## Sleep mode
 
@@ -182,8 +184,16 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    post on/off and minutes, take-over, race window, odds refresh, card start) are on the Modules page.
 6. **MLB + NFL** schedules and scores.
 7. **Odds** on MLB and NFL.
+   **Steps 6 and 7 done together Oct 22 2026**, since the odds came in the same feed. One page per
+   game: before it starts, teams (away @ home), start time (weekday too when not today) and the odds
+   in yellow (MLB: each team's moneyline; NFL: the spread from the favorite's side, e.g. "CHI -3", and
+   "O/U 50.5"); during and after, a two-line scoreboard with the leader bright and the other dimmed, and
+   the inning/quarter in green or FINAL dim. Settings per league: odds on/off, finished games on/off.
+   Polls every minute while a game is on or within the hour, every 10 minutes with games to come,
+   every 30 minutes otherwise. Checked live: NFL week 7 games and lines showed; MLB had no game on
+   Oct 22 and was skipped, as planned.
 
 ## Still open
 
 - Joe's stock list: entered on the Modules page (step 4 is built).
-- MLB moneyline: both teams or favorite only (default both).
+- MLB moneyline: both teams (built that way; favorite-only is an easy change).

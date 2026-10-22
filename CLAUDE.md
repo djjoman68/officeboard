@@ -37,7 +37,10 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
   pages first (they roll); keep ticker_items too.
 - Oct 22 2026: step 4 built: Stocks module (Finnhub; indexes via DIA/SPY/QQQ). Tested offline only.
 - Oct 22 2026: step 5 built: NYRA module on itsposttime's racing code (racing/), rotation, near post
-  (comes on at 3 MTP), take-over. Tested offline only. Next: step 6 (MLB + NFL).
+  (comes on at 3 MTP), take-over. Tested offline only.
+- Oct 22 2026: steps 6 and 7 built together: MLB and NFL modules with odds, all from ESPN's scoreboard
+  feed. Checked live on Joe's PC (NFL week 7). Every module in the plan is now built; next is running it
+  on the Pi and the 3mm panel.
 - Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
 
 ## Layout
@@ -58,9 +61,10 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | `modules/stocks.py` | Stocks: Finnhub quotes + market status, Markets page, one page (or 3 rows) per stock |
 | `modules/nyra.py` | NYRA module: card before the window, race in it, near post (takeover at hold_mtp), take-over mode |
 | `racing/nyra.py`, `racing/feed.py`, `racing/render.py` | itsposttime's NYRA reader, polling feed (settings from the module) and race screens |
+| `modules/games.py` | MLB (today, moneylines) and NFL (this week, spread + total) from ESPN: preview and score pages |
 | `modules/demo.py` | Scroll demo: made-up stocks, race, games for comparing layouts; remove when real modules exist |
 | `modules/paneltest.py` | Panel test module (opts out of layouts) |
-| `modules/planned.py` | Stand-ins for modules not built yet (shown on the Modules page as "coming in step N") |
+| `modules/planned.py` | Stand-ins for modules not built yet (none left; kept for future ideas) |
 | `web/` | Flask app on :8080. Modules page forms are built from each module's `fields` |
 | `tools/preview.py` | preview.gif / preview.png of the rotation, simulated time |
 | `tools/compare_layouts.py` | previews/layout-a..d GIFs: clock + scroll demo in each layout |

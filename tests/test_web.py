@@ -26,7 +26,7 @@ class TestModulesPage(TempFiles):
         pt = mods[-1]
         self.assertTrue(pt["built"] and pt["settings"]["enabled"])
         self.assertIn("message", [f["key"] for f in pt["fields"]])
-        self.assertEqual((mods[3]["id"], mods[3]["built"], mods[3]["step"]), ("mlb", False, 6))
+        self.assertTrue(all(m["built"] for m in mods))           # every planned module is built
 
     def test_toggle_reorder_and_settings_save(self):
         r = self.c.post("/api/modules", json={"settings": {"paneltest": {"enabled": False}}}).get_json()
@@ -40,9 +40,13 @@ class TestModulesPage(TempFiles):
         self.assertEqual((saved["paneltest"]["message"], saved["paneltest"]["seconds"]), ("HELLO", 30))
         self.assertFalse(saved["paneltest"]["enabled"])             # earlier change kept
 
-    def test_planned_module_stays_off(self):
-        r = self.c.post("/api/modules", json={"settings": {"nfl": {"enabled": True}}}).get_json()
-        self.assertFalse(next(m for m in r["modules"] if m["id"] == "nfl")["settings"]["enabled"])
+    def test_unknown_settings_are_ignored(self):
+        r = self.c.post("/api/modules", json={"settings": {"nfl": {"enabled": True, "bogus": 1},
+                                                           "nosuch": {"enabled": True}}}).get_json()
+        nfl = next(m for m in r["modules"] if m["id"] == "nfl")["settings"]
+        self.assertTrue(nfl["enabled"])
+        self.assertNotIn("bogus", nfl)
+        self.assertNotIn("nosuch", config.load()["modules"])
 
     def test_pages_load(self):
         for url in ("/", "/modules", "/config", "/logs"):

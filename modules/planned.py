@@ -9,7 +9,4 @@ def _planned(mod_id, name, description, step):
     })
 
 
-Mlb = _planned("mlb", "MLB", "Today's games with moneylines, then live scores.", 6)
-Nfl = _planned("nfl", "NFL", "This week's games with spread and total, then live scores.", 6)
-
-PLANNED = [Mlb, Nfl]
+PLANNED = []          # every module in the plan is built (Oct 2026); kept for future ideas

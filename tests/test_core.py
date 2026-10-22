@@ -105,8 +105,9 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(sorted(order), sorted(registry.DEFAULT_ORDER))
 
     def test_planned_modules_cannot_be_turned_on(self):
-        mods = registry.modules_config({"mlb": {"enabled": True}})
-        self.assertFalse(mods["mlb"]["enabled"])
+        from modules.planned import _planned
+        later = _planned("later", "Later", "A module still to come.", 9)
+        self.assertFalse(later.normalize({"enabled": True})["enabled"])
 
     def test_panel_test_is_on_by_default_and_settings_are_checked(self):
         mods = registry.modules_config({"paneltest": {"seconds": 1, "message": 42}})
