@@ -1,0 +1,11 @@
+# Your settings and API keys live here on the Pi - never commit them
+config/*.json
+config/*.tmp
+
+# Python / runtime clutter
+__pycache__/
+*.pyc
+.cache/
+*.lock
+preview.png
+preview*.gif
