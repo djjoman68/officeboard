@@ -5,8 +5,9 @@
 
 Runs the real display loop on the stand-in panel with simulated time, and writes:
   preview.gif   animated, for scrolling and page changes
-  preview.png   a sheet of each screen: clock & weather, sunrise/sunset, an alert, sleep mode, panel test
-The clock uses made-up sample weather unless the board has fetched real weather.
+  preview.png   a sheet of each screen: clock & weather, sunrise/sunset, an alert, sleep mode, panel test,
+                stocks
+The clock uses made-up sample weather unless the board has fetched real weather; stocks use sample quotes.
 """
 import os
 import sys
@@ -21,6 +22,7 @@ from rgbmatrix import RGBMatrix               # noqa: E402  (the stand-in)
 from core.display import Display              # noqa: E402
 from core.pixels import led_preview           # noqa: E402
 from test_clock import sample_data            # noqa: E402
+import test_stocks                            # noqa: E402
 
 GIF_FPS = 25        # GIFs can't go much faster; the panel itself runs at the fps setting
 DOT = 6
@@ -47,6 +49,16 @@ screens = [("Clock & weather", clock.draw(start, "forecast")),
            ("Severe weather alert", clock.draw(start, "forecast", {"text": "TSTM WRN", "color": "orange"})),
            ("Sleep mode", clock.sleep_frame(start)),
            ("Panel test", d.modules["paneltest"].frame(start, 2.5))]
+stocks = d.modules["stocks"]
+stocks.data = test_stocks.sample_data(symbols=("AAPL", "MSFT", "BRK.A"))
+stocks.settings = dict(stocks.settings, symbols=["AAPL", "MSFT", "BRK.A"], per_page="1")
+pages = stocks.pages(start)
+screens += [("Stocks: markets (sample quotes)", pages[0]), ("Stocks: one per page", pages[1]),
+            ("Stocks: one per page, falling", pages[2]), ("Stocks: one per page, big price", pages[3])]
+stocks.settings["per_page"] = "3"
+screens.append(("Stocks: three per page", stocks.pages(start)[1]))
+stocks.data = test_stocks.sample_data(session=None)
+screens.append(("Stocks: after the close", stocks.pages(start)[0]))
 pad, cap = 16, 22
 tiles = [(title, led_preview(img, dot=DOT)) for title, img in screens]
 w = tiles[0][1].width + 2 * pad

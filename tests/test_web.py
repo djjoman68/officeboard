@@ -26,7 +26,7 @@ class TestModulesPage(TempFiles):
         pt = mods[-1]
         self.assertTrue(pt["built"] and pt["settings"]["enabled"])
         self.assertIn("message", [f["key"] for f in pt["fields"]])
-        self.assertEqual((mods[1]["built"], mods[1]["step"]), (False, 4))
+        self.assertEqual((mods[2]["id"], mods[2]["built"], mods[2]["step"]), ("nyra", False, 5))
 
     def test_toggle_reorder_and_settings_save(self):
         r = self.c.post("/api/modules", json={"settings": {"paneltest": {"enabled": False}}}).get_json()

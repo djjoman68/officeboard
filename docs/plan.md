@@ -162,12 +162,20 @@ Each step ends with a preview (image or GIF) for Joe to approve.
      At 24 pixels a second that makes scrolling turns long: the demo takes 81s as a full ticker and 61s
      split, against 40s as pages; the clock 39s / 27s / 12s.
 4. **Stocks**.
+   **Done Oct 22 2026** (tested offline with sample quotes; not yet against Finnhub live). Screens, for
+   the Roll layout: a Markets page (MARKET OPEN / PRE-MARKET / AFTER HOURS / MARKET CLOSED / HOLIDAY,
+   then DOW, S&P, NASDAQ with ▲▼ % change in green/red), then one page per stock: symbol and % change,
+   price, $ change and the quote's time. "Stocks per page: 3" gives compact rows (symbol and %) instead.
+   Quotes every minute while any session is open (pre-market to after hours), every 30 minutes
+   otherwise; Finnhub's market status gives the session and holidays, with a clock-based guess if it
+   can't be read. Up to 40 stocks. Unknown symbols are skipped and named on the Modules page. The
+   Finnhub key goes under Settings → Stocks; the list is edited on the Modules page, one per line
+   (reorder by moving lines).
 5. **NYRA**: rotation, hold near post, take over.
 6. **MLB + NFL** schedules and scores.
 7. **Odds** on MLB and NFL.
 
 ## Still open
 
-- Which scroll layout(s) win: decided in step 3.
-- Joe's stock list: entered in the web UI once step 4 is built.
+- Joe's stock list: entered on the Modules page (step 4 is built).
 - MLB moneyline: both teams or favorite only (default both).

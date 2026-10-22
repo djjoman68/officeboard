@@ -12,10 +12,10 @@ modules you turn on and off from a web page:
 It also tests scrolling text against static pages, to see which reads better on a small panel.
 A sleep mode shows just the clock and date at a dimmer brightness on a schedule.
 
-**Status (Oct 2026):** foundation, Clock & weather module and sleep mode built. Stocks, NYRA, MLB and
-NFL come next. See [docs/plan.md](docs/plan.md).
+**Status (Oct 2026):** foundation, Clock & weather, Stocks, sleep mode and the Roll layout built.
+NYRA, MLB and NFL come next. See [docs/plan.md](docs/plan.md).
 
-![The panel's screens: clock & weather, sunrise and sunset, a weather alert, sleep mode, panel test](docs/screenshots/panel-screens.png)
+![The panel's screens: clock & weather, sunrise and sunset, a weather alert, sleep mode, panel test, stocks](docs/screenshots/panel-screens.png)
 
 ## Web UI
 
@@ -76,5 +76,5 @@ separately during setup.
 Released under the **GNU General Public License v3.0**, the same license as FlightTracker.
 See [LICENSE](LICENSE).
 
-Weather from Tomorrow.io and the National Weather Service. Race data is read from nyra.com for
-personal, non-commercial display. Screenshots use made-up sample weather.
+Weather from Tomorrow.io and the National Weather Service; stock quotes from Finnhub. Race data is read from nyra.com for
+personal, non-commercial display. Screenshots use made-up sample weather and quotes.

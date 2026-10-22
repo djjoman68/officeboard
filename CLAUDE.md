@@ -34,7 +34,9 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 - Oct 22 2026: step 3 built: four layouts (pages, roll, full ticker, split), board-wide or per module,
   Scroll demo module, comparison GIFs (`python3 tools/compare_layouts.py` -> previews/).
 - Oct 22 2026: Joe picked **Roll** (layout C) for the board; it's the default. Design new modules'
-  pages first (they roll); keep ticker_items too. Next: step 4 (stocks).
+  pages first (they roll); keep ticker_items too.
+- Oct 22 2026: step 4 built: Stocks module (Finnhub; indexes via DIA/SPY/QQQ). Tested offline only.
+  Next: step 5 (NYRA).
 - Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
 
 ## Layout
@@ -52,6 +54,7 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | `core/sleep.py` | Sleep schedule, all-day days, Sleep now / Wake now overrides. Pure logic |
 | `modules/clock.py` | Clock & weather: Tomorrow.io fetch + disk cache, itsposttime's layout, sun at end of turn, alerts, sleep screen |
 | `modules/nws.py` | Severe weather alerts (from itsposttime) |
+| `modules/stocks.py` | Stocks: Finnhub quotes + market status, Markets page, one page (or 3 rows) per stock |
 | `modules/demo.py` | Scroll demo: made-up stocks, race, games for comparing layouts; remove when real modules exist |
 | `modules/paneltest.py` | Panel test module (opts out of layouts) |
 | `modules/planned.py` | Stand-ins for modules not built yet (shown on the Modules page as "coming in step N") |

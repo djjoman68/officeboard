@@ -30,6 +30,16 @@
   </div>
 
   <div class="section">
+    <div class="section-header">Stocks</div>
+    <div class="section-body">
+      <div class="field"><label for="k-finnhub">Finnhub API key</label>
+        <input id="k-finnhub" type="text" data-path="secrets.finnhub_api_key" autocomplete="off">
+        <span class="hint">Free key from finnhub.io (sign up, then copy the key from the dashboard).
+          Your list of stocks is on the <a href="/modules">Modules</a> page.</span></div>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-header">Sleep mode</div>
     <div class="section-body">
       <div class="field checkbox"><input type="checkbox" id="s-on" data-path="config.sleep.enabled"><label for="s-on">Sleep on a schedule</label></div>

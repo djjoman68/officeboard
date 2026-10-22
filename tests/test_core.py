@@ -105,8 +105,8 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(sorted(order), sorted(registry.DEFAULT_ORDER))
 
     def test_planned_modules_cannot_be_turned_on(self):
-        mods = registry.modules_config({"stocks": {"enabled": True}})
-        self.assertFalse(mods["stocks"]["enabled"])
+        mods = registry.modules_config({"nyra": {"enabled": True}})
+        self.assertFalse(mods["nyra"]["enabled"])
 
     def test_panel_test_is_on_by_default_and_settings_are_checked(self):
         mods = registry.modules_config({"paneltest": {"seconds": 1, "message": 42}})
@@ -220,7 +220,7 @@ class TestDisplayLoop(TempFiles):
             s = json.load(f)
         self.assertEqual((s["module"], s["module_name"]), ("paneltest", "Panel test"))
         self.assertTrue(s["modules"]["paneltest"]["has_content"])
-        self.assertFalse(s["modules"]["stocks"]["has_content"])
+        self.assertFalse(s["modules"]["nyra"]["has_content"])
         self.assertFalse(s["asleep"])
         self.assertTrue(os.path.exists(disp.FRAME_FILE))
 
