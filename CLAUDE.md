@@ -61,7 +61,7 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 | `modules/stocks.py` | Stocks: Finnhub quotes + market status, Markets page, one page (or 3 rows) per stock |
 | `modules/nyra.py` | NYRA module: card before the window, race in it, near post (takeover at hold_mtp), take-over mode |
 | `racing/nyra.py`, `racing/feed.py`, `racing/render.py` | itsposttime's NYRA reader, polling feed (settings from the module) and race screens |
-| `modules/games.py` | MLB (today, moneylines) and NFL (this week, spread + total) from ESPN: preview and score pages |
+| `modules/games.py` | MLB (today, moneylines) and NFL (this week, spread + total) from ESPN: preview and score pages, team colours, logos (downloaded to .cache/logos) |
 | `modules/demo.py` | Scroll demo: made-up stocks, race, games for comparing layouts; remove when real modules exist |
 | `modules/paneltest.py` | Panel test module (opts out of layouts) |
 | `modules/planned.py` | Stand-ins for modules not built yet (none left; kept for future ideas) |
@@ -81,7 +81,7 @@ sets `supports_layouts = False` (the panel test).
 - Test before committing: `python3 -m unittest discover tests` (no panel or internet needed).
 - Visual changes: `python3 tools/preview.py` and show Joe the GIF (or a frame of it).
 - This folder is its own git repo, separate from the pick5 repo in the parent folder.
-- Never commit `config/*.json` (secrets, Pi settings).
+- Never commit `config/*.json` (secrets, Pi settings) or team logos (.cache/logos; teams' trademarks).
 - License is GPL-3.0. Keep credits in README.md. When copying a file from itsposttime or the plane
   tracker, keep its notes at the top and add "Modified for the office board".
 - Keep NYRA polling gentle: use itsposttime's limits, never faster. The racing/ files and

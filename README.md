@@ -76,6 +76,7 @@ separately during setup.
 Released under the **GNU General Public License v3.0**, the same license as FlightTracker.
 See [LICENSE](LICENSE).
 
-Weather from Tomorrow.io and the National Weather Service; stock quotes from Finnhub; games, scores and DraftKings odds
-from ESPN's scoreboard feed. Race data is read from nyra.com for
+Weather from Tomorrow.io and the National Weather Service; stock quotes from Finnhub; games, scores, DraftKings odds and
+team logos from ESPN. Team logos are the teams' trademarks: the board downloads them for display and
+they are not part of this repository. Race data is read from nyra.com for
 personal, non-commercial display. Screenshots use made-up sample weather, quotes, races and games.

@@ -188,5 +188,112 @@ class TestFetching(unittest.TestCase):
         self.assertEqual(m.fetch_interval(), games.IDLE_SECONDS)
 
 
+def png(colour=(220, 30, 30), size=(100, 50)):
+    """A made-up logo: a coloured block on a see-through background, as PNG bytes."""
+    from io import BytesIO
+    from PIL import Image
+    img = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+    img.paste(colour + (255,), (50, 75, 50 + size[0], 75 + size[1]))
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+class FakeCDN(FakeESPN):
+    """ESPN's scoreboard plus its image server."""
+
+    def __init__(self, body):
+        super().__init__(body)
+        self.images = 0
+
+    def get(self, url, params=None, **kw):
+        if "espncdn" not in url:
+            return super().get(url, params, **kw)
+        self.images += 1
+        content = png()
+
+        class Resp:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+        r = Resp()
+        r.content = content
+        return r
+
+
+def with_logos(body):
+    for e in body["events"]:
+        for c in e["competitions"][0]["competitors"]:
+            abbr = c["team"]["abbreviation"].lower()
+            c["team"].update(color="0b1c3a", alternateColor="e64100",
+                             logoDark=f"https://a.espncdn.com/i/teamlogos/nfl/500-dark/scoreboard/{abbr}.png")
+    return body
+
+
+class TestTeamLook(support.TempFiles):
+    """Joe's pick (Oct 22 2026): brighter logos on the score screens, team names in team colours."""
+
+    def setUp(self):
+        super().setUp()
+        self._saved_get = games.requests.get
+
+    def tearDown(self):
+        games.requests.get = self._saved_get
+        super().tearDown()
+
+    def test_team_colour_is_the_brighter_one_lifted_for_leds(self):
+        self.assertEqual(games.team_colour({"color": "0b1c3a", "alt": "e64100"}), (230, 65, 0))     # Bears orange
+        self.assertEqual(games.team_colour({"color": "0c2340", "alt": "ffffff"}), (255, 255, 255))  # navy + white
+        dark = games.team_colour({"color": "13294b", "alt": "000000"})
+        self.assertGreaterEqual(games._lum(dark), games.MIN_LUM - 1)
+        self.assertEqual(games.team_colour({}), games.WHITE)
+
+    def test_logo_tile(self):
+        from io import BytesIO
+        from PIL import Image
+        tile = games.process_logo(Image.open(BytesIO(png())))
+        self.assertEqual(tile.size, (games.LOGO, games.LOGO))
+        self.assertEqual(tile.getpixel((0, 0)), (0, 0, 0))                     # background black
+        r, g, b = tile.getpixel((6, 6))
+        self.assertGreater(r, 200)                                              # the logo, brightened
+
+    def test_logos_download_once_and_show_on_the_score_screen(self):
+        cdn = FakeCDN(with_logos(nfl_week()))
+        games.requests.get = cdn.get
+        m = Nfl()
+        m.refresh(NOW)
+        self.assertEqual(cdn.images, 8)                                        # 8 teams
+        m.refresh(NOW)
+        self.assertEqual(cdn.images, 8)                                        # kept, not downloaded again
+        live = m.pages(NOW)[3]                                                 # NYJ @ BUF, in progress
+        self.assertGreater(live.getpixel((6, 6))[0], 200)                      # NYJ logo top-left
+        self.assertIn((230, 65, 0), colours(live))                             # names in team colour
+
+    def test_logos_off(self):
+        cdn = FakeCDN(with_logos(nfl_week()))
+        games.requests.get = cdn.get
+        m = Nfl()
+        m.settings["logos"] = False
+        m.refresh(NOW)
+        self.assertEqual(cdn.images, 0)
+        self.assertIsNone(m.pages(NOW)[3].crop((0, 0, 2, 26)).getbbox())    # nothing where logos go
+
+    def test_only_espns_image_server_and_failures_wait(self):
+        body = with_logos(nfl_week())
+        body["events"][0]["competitions"][0]["competitors"][0]["team"]["logoDark"] = "https://example.com/x.png"
+        cdn = FakeCDN(body)
+        games.requests.get = cdn.get
+        m = Nfl()
+        m.refresh(NOW)
+        self.assertEqual(cdn.images, 7)                                        # CHI's odd link skipped
+        m.refresh(NOW)
+        self.assertEqual(cdn.images, 7)                                        # and not retried for 6 hours
+
+    def test_preview_page_uses_team_colours(self):
+        m = module(Nfl, with_logos(nfl_week()))
+        self.assertIn((230, 65, 0), colours(m.pages(NOW)[0]))
+
+
 if __name__ == "__main__":
     unittest.main()

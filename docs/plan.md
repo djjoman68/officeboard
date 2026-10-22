@@ -192,6 +192,12 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    Polls every minute while a game is on or within the hour, every 10 minutes with games to come,
    every 30 minutes otherwise. Checked live: NFL week 7 games and lines showed; MLB had no game on
    Oct 22 and was skipped, as planned.
+   **Team look (Joe's pick, Oct 22 2026, option C of four previewed):** score screens show each team's
+   logo (13x13, brightened for LEDs) beside its name, and names everywhere are in the team's colour (the
+   brighter of its two, lifted when it's too dark to light). Logos come from ESPN's image server the
+   first time a team plays and stay on the Pi in .cache/logos; never in git (team trademarks). "Show
+   team logos" can be turned off per league. Pre-game screens keep their layout (team colours, no logos)
+   so the odds stay big. Colour badges were tried and dropped: too many colour pairs were unreadable.
 
 ## Still open
 
