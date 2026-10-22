@@ -38,6 +38,8 @@ IDLE_SECONDS = 1800        # nothing on soon (or no games at all)
 
 WHITE, DIM, ODDS, LIVE = pixels.WHITE, (110, 110, 110), pixels.YELLOW, (0, 220, 80)
 TRAILING = (140, 140, 140)
+TIME = (160, 160, 160)     # start time on the pre-game screen
+BOTTOM_GAP = 4             # pixels kept between the start time and the total
 DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 
 # Team logos: fetched from ESPN's image server the first time a team plays, kept on the Pi in
@@ -288,9 +290,15 @@ class Games(Module):
         return []
 
     # ---------- screens ----------
-    def when(self, game, now):
+    def when(self, game, now, short_day=False, compact=False):
+        """8:15p today, else SUN 1:00p. Sharing the bottom line with the total: SU 1p / SU 4:25p."""
         t = short_time(game["start"], self.board.location["clock_format"])
-        return t if game["start"].date() == now.date() else f"{DAYS[game['start'].weekday()]} {t}"
+        if compact and t.endswith((":00a", ":00p")):
+            t = t[:-4] + t[-1]
+        if game["start"].date() == now.date():
+            return t
+        day = DAYS[game["start"].weekday()]
+        return f"{day[:2] if short_day else day} {t}"
 
     def pages(self, now):
         games = self.games(now)
@@ -301,15 +309,42 @@ class Games(Module):
             self._pages_key = key
         return self._pages
 
+    def _team_rows(self, img, game, right):
+        """Away team on top, home below: logo, name in team colour, and on the right `right[side]`
+        ((text, colour, font) or None): the score, or the odds before the game."""
+        for top, side in ((0, "away"), (13, "home")):
+            team = game[side]
+            tile = self.logo(team)
+            x = 2
+            if tile is not None:
+                img.paste(tile, (0, top))
+                x = LOGO + 3
+            pixels.draw_text(img, "regular", x, top + 10, team_colour(team), team["abbr"])
+            if right.get(side):
+                text, colour, font = right[side]
+                y = top + 10 if font == "regular" else top + 9
+                pixels.draw_text(img, font, 63 - pixels.text_width(font, text), y, colour, text)
+
     def preview_page(self, game, now):
-        """Teams, start time, then up to two lines of odds."""
+        """Before the game, laid out like the score screen: each team's logo and name with its odds on
+        the right (NFL spread, MLB moneyline), then the start time (and NFL total) on the bottom line."""
         img = pixels.blank()
-        away, home = game["away"], game["home"]
-        _centre(img, "small", 7, [(away["abbr"], team_colour(away)), (" @ ", DIM), (home["abbr"], team_colour(home))])
-        _centre(img, "tiny", 15, [(self.when(game, now), DIM)])
-        lines = self.odds_lines(game) if self.settings["odds"] and game.get("odds") else []
-        for y, line in zip((23, 31), lines):
-            _centre(img, "small", y, line)
+        show = self.settings["odds"] and game.get("odds")
+        odds = self.row_odds(game) if show else {}
+        self._team_rows(img, game, {s: (t, ODDS, "small") for s, t in odds.items() if t})
+        extra = self.bottom_odds(game) if show else None
+        when = self.when(game, now, short_day=bool(extra), compact=bool(extra))
+        if extra:
+            # Time on the left, the total on the right ("O/U49.5"); just the number if they'd touch
+            pieces = [("O/U", DIM), (extra, ODDS)]
+            if pixels.text_width("tiny", when) + pixels.text_width("tiny", "O/U" + extra) + BOTTOM_GAP > pixels.WIDTH:
+                pieces = [(extra, ODDS)]
+            pixels.draw_text(img, "tiny", 0, 31, TIME, when)
+            x = pixels.WIDTH - sum(pixels.text_width("tiny", t) for t, _ in pieces)
+            for text, colour in pieces:
+                x += pixels.draw_text(img, "tiny", x, 31, colour, text)
+        else:
+            _centre(img, "tiny", 31, [(when, TIME)])
         return img
 
     def score_page(self, game):
@@ -321,19 +356,20 @@ class Games(Module):
             a, h = int(away["score"] or 0), int(home["score"] or 0)
         except ValueError:
             a = h = 0
-        for top, team, mine, theirs in ((0, away, a, h), (13, home, h, a)):
-            tile = self.logo(team)
-            x = 2
-            if tile is not None:
-                img.paste(tile, (0, top))
-                x = LOGO + 3
-            pixels.draw_text(img, "regular", x, top + 10, team_colour(team), team["abbr"])
-            score = str(mine)
-            pixels.draw_text(img, "regular", 62 - pixels.text_width("regular", score), top + 10,
-                             WHITE if mine >= theirs else TRAILING, score)
+        self._team_rows(img, game, {"away": (str(a), WHITE if a >= h else TRAILING, "regular"),
+                                    "home": (str(h), WHITE if h >= a else TRAILING, "regular")})
         status = status_text(game)
         _centre(img, "tiny", 31, [(status, LIVE if game["state"] == "in" else DIM)])
         return img
+
+    # ---------- odds on the pre-game screen (per league) ----------
+    def row_odds(self, game):
+        """{"away": "+3", "home": "-3"}: each team's number, shown on its row."""
+        return {}
+
+    def bottom_odds(self, game):
+        """A number for the bottom line beside the time (the NFL total), or None."""
+        return None
 
     def ticker_items(self, now):
         items = []
@@ -372,6 +408,11 @@ class Mlb(Games):
                 lines.append([(game[side]["abbr"] + " ", team_colour(game[side])), (price, ODDS)])
         return lines
 
+    def row_odds(self, game):
+        """Each team's moneyline on its own row: TB +133 / MIL -161."""
+        o = game["odds"]
+        return {side: o.get(f"ml_{side}") for side in ("away", "home")}
+
 
 class Nfl(Games):
     id = "nfl"
@@ -390,3 +431,25 @@ class Nfl(Games):
         if o.get("total") is not None:
             lines.append([("O/U ", DIM), (f"{o['total']:g}", ODDS)])
         return lines
+
+    def row_odds(self, game):
+        """Each team's spread on its own row, the way sportsbooks list it: CHI -3 / NE +3; PK for EVEN."""
+        details = (game["odds"].get("details") or "").upper().strip()
+        if details in ("EVEN", "PK", "PICK"):
+            return {"away": "PK", "home": "PK"}
+        abbr, _, line = details.partition(" ")
+        try:
+            points = abs(float(line))
+        except ValueError:
+            return {}
+        sides = {game[s]["abbr"]: s for s in ("away", "home")}
+        if abbr not in sides:
+            return {}
+        number = f"{points:g}"
+        fav = sides[abbr]
+        dog = "home" if fav == "away" else "away"
+        return {fav: f"-{number}", dog: f"+{number}"}
+
+    def bottom_odds(self, game):
+        total = game["odds"].get("total") if game.get("odds") else None
+        return f"{total:g}" if total is not None else None

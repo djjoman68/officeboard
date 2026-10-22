@@ -196,8 +196,12 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    logo (13x13, brightened for LEDs) beside its name, and names everywhere are in the team's colour (the
    brighter of its two, lifted when it's too dark to light). Logos come from ESPN's image server the
    first time a team plays and stay on the Pi in .cache/logos; never in git (team trademarks). "Show
-   team logos" can be turned off per league. Pre-game screens keep their layout (team colours, no logos)
-   so the odds stay big. Colour badges were tried and dropped: too many colour pairs were unreadable.
+   team logos" can be turned off per league.
+   **Pre-game screen (Joe, Oct 22 2026): logos too, odds compressed.** Laid out like the score screen:
+   each team's row has its logo, name in team colour and its own number on the right, sportsbook style
+   (NFL spread: CHI -3 / NE +3, PK for a pick'em; MLB moneyline: TB +133 / MIL -161). The bottom line
+   has the start time on the left (brighter gray; "SU 1p" style when sharing the line) and, for the
+   NFL, the total on the right ("O/U49.5", or just the number if they'd touch). Colour badges were tried and dropped: too many colour pairs were unreadable.
 
 ## Still open
 

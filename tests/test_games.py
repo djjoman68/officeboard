@@ -1,4 +1,5 @@
 """MLB and NFL modules. Made-up games in the shape of ESPN's scoreboard feed, no internet."""
+import os
 import unittest
 from datetime import datetime, timedelta, timezone
 
@@ -11,6 +12,20 @@ from modules import games
 from modules.games import Mlb, Nfl, parse_scoreboard, status_text
 
 NOW = datetime(2026, 10, 22, 12, 0)
+
+
+def setUpModule():
+    """Never use logos this computer has downloaded: every test starts with none."""
+    import tempfile
+    global _saved_logo_dir, _tmp_logo_dir
+    _saved_logo_dir, _tmp_logo_dir = games.LOGO_DIR, tempfile.mkdtemp()
+    games.LOGO_DIR = os.path.join(_tmp_logo_dir, "logos")
+
+
+def tearDownModule():
+    import shutil
+    games.LOGO_DIR = _saved_logo_dir
+    shutil.rmtree(_tmp_logo_dir, ignore_errors=True)
 
 
 def utc(local):
@@ -293,6 +308,47 @@ class TestTeamLook(support.TempFiles):
     def test_preview_page_uses_team_colours(self):
         m = module(Nfl, with_logos(nfl_week()))
         self.assertIn((230, 65, 0), colours(m.pages(NOW)[0]))
+
+    def test_preview_page_has_logos_too(self):
+        cdn = FakeCDN(with_logos(nfl_week()))
+        games.requests.get = cdn.get
+        m = Nfl()
+        m.refresh(NOW)
+        upcoming = m.pages(NOW)[0]                                             # NE @ CHI, not started
+        self.assertGreater(upcoming.getpixel((6, 6))[0], 200)                  # NE logo top-left
+        self.assertGreater(upcoming.getpixel((6, 19))[0], 200)                 # CHI logo below
+
+
+class TestCompactOdds(unittest.TestCase):
+    """Odds sit on each team's row, like a sportsbook: NFL spreads, MLB moneylines. (Joe, Oct 22 2026)"""
+
+    def test_nfl_spread_per_team(self):
+        m = module(Nfl, nfl_week())
+        g = m.games(NOW)
+        self.assertEqual(m.row_odds(g[0]), {"home": "-3", "away": "+3"})          # CHI -3 at home
+        self.assertEqual(m.row_odds(g[1]), {"away": "-2.5", "home": "+2.5"})      # SF -2.5 on the road
+        self.assertEqual(m.row_odds(g[2]), {"away": "PK", "home": "PK"})          # EVEN
+        self.assertEqual(m.bottom_odds(g[0]), "50.5")
+
+    def test_mlb_moneyline_per_team(self):
+        m = module(Mlb, mlb_day())
+        g = next(x for x in m.games(NOW) if x["state"] == "pre")
+        self.assertEqual(m.row_odds(g), {"away": "+133", "home": "-161"})
+        self.assertIsNone(m.bottom_odds(g))
+
+    def test_layout(self):
+        m = module(Nfl, nfl_week())
+        page = m.pages(NOW)[1]                                                  # SF @ ATL, Sunday
+        self.assertIn(games.ODDS, colours(page.crop((40, 0, 64, 12))))          # SF -2.5 on the top row
+        self.assertIn(games.ODDS, colours(page.crop((40, 13, 64, 25))))         # ATL +2.5 below
+        self.assertIn(games.TIME, colours(page.crop((0, 26, 30, 32))))          # SU 1p bottom left
+        self.assertIn(games.ODDS, colours(page.crop((44, 26, 64, 32))))         # the total bottom right
+        self.assertEqual(m.when(m.games(NOW)[1], NOW, short_day=True, compact=True), "SU 1p")
+        self.assertEqual(m.when(m.games(NOW)[2], NOW, short_day=True, compact=True), "SU 8:15p")
+
+    def test_unreadable_spread_shows_no_numbers(self):
+        g = parse_scoreboard({"events": [event("NE", "CHI", NOW, odds={"details": "OFF"})]})[0]
+        self.assertEqual(Nfl().row_odds(g), {})
 
 
 if __name__ == "__main__":
