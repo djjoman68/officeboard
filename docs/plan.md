@@ -216,6 +216,12 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    out. When a dark-background logo has no colour, the board uses the team's regular logo instead,
    brightened until its colours show. Logos that really are white or silver (Raiders, Saints, White Sox)
    stay as they were. Logo files are named with a version (v2), so a Pi re-downloads them all once.
+   **Live game situation (Joe, Oct 25 2026), from ESPN's "situation" block while a game is on:**
+   NFL: a small football between the team name and the score of the team with the ball (red in the red
+   zone), and down and distance at the right of the bottom line ("Q3 5:21 ... 2&7", "1&G" at the goal
+   line). MLB: a diamond between the names and the scores with lit (yellow) bases for runners, the inning
+   at the left of the bottom line and three out dots at the right. If ESPN gives no situation, the
+   bottom line is as before. Built from ESPN's documented format; first live check due Oct 25 afternoon.
 
 ## Still open
 

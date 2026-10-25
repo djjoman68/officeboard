@@ -33,11 +33,14 @@ def utc(local):
     return local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
 
 
-def event(away, home, start, state="pre", detail="", scores=("0", "0"), odds=None, eid="1"):
-    comp = {"competitors": [{"homeAway": "home", "team": {"abbreviation": home}, "score": scores[1]},
-                            {"homeAway": "away", "team": {"abbreviation": away}, "score": scores[0]}]}
+def event(away, home, start, state="pre", detail="", scores=("0", "0"), odds=None, eid="1", situation=None):
+    """A game as ESPN lists it. Team ids are made from the abbreviations (ESPN uses numbers)."""
+    comp = {"competitors": [{"homeAway": "home", "team": {"abbreviation": home, "id": "id-" + home}, "score": scores[1]},
+                            {"homeAway": "away", "team": {"abbreviation": away, "id": "id-" + away}, "score": scores[0]}]}
     if odds is not None:
         comp["odds"] = [odds]
+    if situation is not None:
+        comp["situation"] = situation
     return {"id": eid, "date": utc(start), "competitions": [comp],
             "status": {"type": {"state": state, "shortDetail": detail, "completed": state == "post"}}}
 
@@ -356,6 +359,65 @@ class TestTeamLook(support.TempFiles):
         upcoming = m.pages(NOW)[0]                                             # NE @ CHI, not started
         self.assertGreater(upcoming.getpixel((6, 6))[0], 200)                  # NE logo top-left
         self.assertGreater(upcoming.getpixel((6, 19))[0], 200)                 # CHI logo below
+
+
+NFL_LIVE = {"possession": "id-BUF", "down": 2, "distance": 7, "shortDownDistanceText": "2nd & 7",
+            "isRedZone": False, "homeTimeouts": 3, "awayTimeouts": 2}
+MLB_LIVE = {"balls": 1, "strikes": 2, "outs": 2, "onFirst": True, "onSecond": False, "onThird": True}
+
+
+class TestLiveSituation(unittest.TestCase):
+    """Joe, Oct 25 2026: who has the ball in the NFL; outs and runners in MLB."""
+
+    def nfl(self, **sit):
+        g = event("NYJ", "BUF", NOW, state="in", detail="5:21 - 3rd", scores=("10", "17"),
+                  situation=dict(NFL_LIVE, **sit))
+        return parse_scoreboard({"events": [g]})[0]
+
+    def mlb(self, **sit):
+        g = event("NYY", "BOS", NOW, state="in", detail="Top 7th", scores=("3", "5"), situation=dict(MLB_LIVE, **sit))
+        return parse_scoreboard({"events": [g]})[0]
+
+    def test_reading_the_situation(self):
+        s = self.nfl()["situation"]
+        self.assertEqual((s["possession"], s["down"], s["red_zone"]), ("home", "2&7", False))
+        self.assertEqual(self.nfl(down=1, distance=4, shortDownDistanceText="1st & Goal")["situation"]["down"], "1&G")
+        self.assertEqual(self.nfl(possession="")["situation"]["possession"], None)     # e.g. halftime
+        m = self.mlb()["situation"]
+        self.assertEqual((m["outs"], m["bases"]), (2, (True, False, True)))
+        before = parse_scoreboard({"events": [event("A", "B", NOW, situation=NFL_LIVE)]})[0]
+        self.assertIsNone(before["situation"])                                     # only while a game is on
+
+    def test_football_beside_the_team_with_the_ball(self):
+        page = Nfl().score_page(self.nfl())
+        ball = games.BALL_X + 2
+        self.assertEqual(page.getpixel((ball, 13 + 5)), games.BALL)                # BUF (home row) has it
+        self.assertEqual(page.getpixel((ball, 5)), (0, 0, 0))                      # not NYJ
+        red = Nfl().score_page(self.nfl(isRedZone=True))
+        self.assertEqual(red.getpixel((ball, 18)), games.RED_ZONE)
+
+    def test_down_and_distance_on_the_bottom_line(self):
+        page = Nfl().score_page(self.nfl())
+        self.assertIn(games.LIVE, colours(page.crop((0, 26, 30, 32))))             # Q3 5:21 on the left
+        self.assertIn(games.WHITE, colours(page.crop((50, 26, 64, 32))))           # 2&7 on the right
+
+    def test_bases_and_outs(self):
+        page = Mlb().score_page(self.mlb())
+        x, y = games.DIAMOND_X, games.DIAMOND_Y
+        self.assertEqual(page.getpixel((x + 11, y + 6)), games.RUNNER)             # runner on first
+        self.assertEqual(page.getpixel((x + 6, y + 1)), games.EMPTY_BASE)          # second empty
+        self.assertEqual(page.getpixel((x + 1, y + 6)), games.RUNNER)              # runner on third
+        name_end = 2 + games.pixels.text_width("regular", "NYY")
+        self.assertGreater(x, name_end)                                            # clear of the names...
+        self.assertLess(x + 13, 63 - games.pixels.text_width("regular", "10"))      # ...and the scores
+        outs = [page.getpixel((games.OUTS_X + i * 4, 28)) for i in range(3)]
+        self.assertEqual(outs, [games.OUT, games.OUT, games.EMPTY_BASE])           # two out
+        self.assertIn(games.LIVE, colours(page.crop((0, 26, 30, 32))))             # TOP 7TH on the left
+
+    def test_no_situation_keeps_the_plain_bottom_line(self):
+        g = parse_scoreboard({"events": [event("NYY", "BOS", NOW, state="in", detail="Top 7th", scores=("3", "5"))]})[0]
+        page = Mlb().score_page(g)
+        self.assertNotIn(games.EMPTY_BASE, colours(page))
 
 
 def texts(rows):

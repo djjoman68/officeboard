@@ -39,6 +39,12 @@ IDLE_SECONDS = 1800        # nothing on soon (or no games at all)
 WHITE, DIM, ODDS, LIVE = pixels.WHITE, (110, 110, 110), pixels.YELLOW, (0, 220, 80)
 TRAILING = (140, 140, 140)
 TIME = (160, 160, 160)     # start time on the pre-game screen
+# Live game situation (Joe, Oct 25 2026)
+BALL, RED_ZONE = (205, 125, 55), (255, 40, 40)      # NFL: who has the ball
+BALL_X = 41                                         # between the team name and the score
+RUNNER, EMPTY_BASE, OUT = (255, 200, 0), (75, 75, 75), (255, 90, 90)   # MLB bases and outs
+DIAMOND_X, DIAMOND_Y, BASE = 37, 6, 3     # diamond between the names and the scores; 3x3 bases
+OUTS_X = 52
 DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 
 # Team logos: fetched from ESPN's image server the first time a team plays, kept on the Pi in
@@ -83,9 +89,34 @@ def parse_odds(competition):
 
 def _team(c):
     t = c["team"]
-    return {"abbr": t["abbreviation"], "score": c.get("score"),
+    return {"abbr": t["abbreviation"], "score": c.get("score"), "id": str(t.get("id", "")),
             "color": t.get("color"), "alt": t.get("alternateColor"),
             "logo_url": t.get("logoDark") or t.get("logo"), "logo_light_url": t.get("logo")}
+
+
+def parse_situation(comp, teams):
+    """What's happening in a live game, from ESPN's "situation" block (only there while it's on):
+    NFL: which side has the ball, down and distance, red zone. MLB: outs and runners on base.
+    None when there's nothing to show."""
+    sit = comp.get("situation") or {}
+    if not sit:
+        return None
+    ball = str(sit.get("possession") or "")
+    side = next((s for s in ("away", "home") if ball and teams[s]["id"] == ball), None)
+    down, distance = sit.get("down"), sit.get("distance")
+    down_text = None
+    if isinstance(down, int) and 1 <= down <= 4:
+        goal = "GOAL" in (sit.get("shortDownDistanceText") or sit.get("downDistanceText") or "").upper()
+        if goal:
+            down_text = f"{down}&G"
+        elif isinstance(distance, int) and distance >= 0:
+            down_text = f"{down}&{distance}"
+    outs = sit.get("outs")
+    return {
+        "possession": side, "down": down_text, "red_zone": bool(sit.get("isRedZone")),
+        "outs": outs if isinstance(outs, int) and 0 <= outs <= 3 else None,
+        "bases": (bool(sit.get("onFirst")), bool(sit.get("onSecond")), bool(sit.get("onThird"))),
+    }
 
 
 def parse_scoreboard(body):
@@ -104,6 +135,7 @@ def parse_scoreboard(body):
             "completed": status.get("completed", False),
             "home": teams["home"], "away": teams["away"],
             "odds": parse_odds(comp),
+            "situation": parse_situation(comp, teams) if status.get("state") == "in" else None,
         })
     return sorted(games, key=lambda g: g["start"])
 
@@ -378,8 +410,13 @@ class Games(Module):
         self._team_rows(img, game, {"away": [(str(a), WHITE if a >= h else TRAILING)],
                                     "home": [(str(h), WHITE if h >= a else TRAILING)]})
         status = status_text(game)
-        _centre(img, "tiny", 31, [(status, LIVE if game["state"] == "in" else DIM)])
+        if not (game["state"] == "in" and game.get("situation") and self.draw_situation(img, game, status)):
+            _centre(img, "tiny", 31, [(status, LIVE if game["state"] == "in" else DIM)])
         return img
+
+    def draw_situation(self, img, game, status):
+        """Draw a live game's situation (per league). Returns False to use the plain bottom line."""
+        return False
 
     # ---------- odds on the pre-game screen (per league) ----------
     def row_odds(self, game):
@@ -423,6 +460,22 @@ class Mlb(Games):
                 lines.append([(game[side]["abbr"] + " ", team_colour(game[side])), (price, ODDS)])
         return lines
 
+    def draw_situation(self, img, game, status):
+        """A diamond between the team names and the scores, its bases lit when a runner is on; the inning
+        on the left of the bottom line and three dots for the outs on the right (Joe, Oct 25 2026)."""
+        sit = game["situation"]
+        if sit["outs"] is None:
+            return False
+        pixels.draw_text(img, "tiny", 0, 31, LIVE, status)
+        first, second, third = sit["bases"]
+        x0, y0 = DIAMOND_X, DIAMOND_Y
+        for on, (x, y) in ((second, (x0 + 5, y0)), (third, (x0, y0 + 5)), (first, (x0 + 10, y0 + 5))):
+            img.paste(RUNNER if on else EMPTY_BASE, (x, y, x + BASE, y + BASE))
+        for i in range(3):
+            x = OUTS_X + i * 4
+            img.paste(OUT if i < sit["outs"] else EMPTY_BASE, (x, 28, x + 2, 30))
+        return True
+
     def row_odds(self, game):
         """Each team's moneyline on its own row: TB +133 / MIL -161."""
         o = game["odds"]
@@ -446,6 +499,22 @@ class Nfl(Games):
         if o.get("total") is not None:
             lines.append([("O/U ", DIM), (f"{o['total']:g}", ODDS)])
         return lines
+
+    def draw_situation(self, img, game, status):
+        """A small football beside the team with the ball (red in the red zone), and the down and
+        distance on the right of the bottom line: "Q3 5:21 ... 2&7" (Joe, Oct 25 2026)."""
+        sit = game["situation"]
+        if not sit["possession"] and not sit["down"]:
+            return False
+        if sit["possession"]:
+            top = 0 if sit["possession"] == "away" else 13
+            colour = RED_ZONE if sit["red_zone"] else BALL
+            for dy, x0, x1 in ((0, 1, 4), (1, 0, 5), (2, 1, 4)):           # a 5x3 football
+                img.paste(colour, (BALL_X + x0, top + 4 + dy, BALL_X + x1, top + 5 + dy))
+        pixels.draw_text(img, "tiny", 0, 31, LIVE, status)
+        if sit["down"]:
+            pixels.draw_text(img, "tiny", 64 - pixels.text_width("tiny", sit["down"]), 31, WHITE, sit["down"])
+        return True
 
     def row_odds(self, game):
         """The spread on the favourite's row only (CHI -3), and the total on the other row, right above
