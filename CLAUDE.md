@@ -41,7 +41,10 @@ Repo: https://github.com/djjoman68/officeboard (public, created Oct 22 2026).
 - Oct 22 2026: steps 6 and 7 built together: MLB and NFL modules with odds, all from ESPN's scoreboard
   feed. Checked live on Joe's PC (NFL week 7). Every module in the plan is now built; next is running it
   on the Pi and the 3mm panel.
-- Hardware: the P3 panel has not been tested yet. SETUP.md step 5 covers the FM6126A driver chip.
+- Oct 23-24 2026: installed on the real Pi and panel. While fitting it into a case the microSD card
+  failed (Pi stuck on a steady red light, card unreadable on the PC); a new card, re-flashed and set up
+  from SETUP.md, fixed it. If Joe reports a steady red light and no green flicker, check the card first.
+  Back up and running Oct 24 2026.
 
 ## Layout
 
