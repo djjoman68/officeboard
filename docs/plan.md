@@ -177,6 +177,10 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    can't be read. Up to 40 stocks. Unknown symbols are skipped and named on the Modules page. The
    Finnhub key goes under Settings → Stocks; the list is edited on the Modules page, one per line
    (reorder by moving lines).
+   **Weekends and market holidays (Joe, Oct 24 2026):** Stocks drops out of the rotation all day Saturday
+   and Sunday, and on market holidays (Finnhub's market status). Friday evening still shows that day's
+   close; it's back Monday morning. On by default ("Skip weekends and market holidays" on the Modules
+   page); quotes are checked only every 3 hours while it's skipped.
 5. **NYRA**: rotation, hold near post, take over.
    **Done Oct 22 2026** (tested offline with itsposttime's sample page and tests; not yet live). Reuses
    itsposttime's reader, feed, screens and polling limits unchanged (racing/), so the race board, big MTP,

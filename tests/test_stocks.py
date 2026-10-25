@@ -181,6 +181,27 @@ class TestStocksScreens(unittest.TestCase):
     def test_nothing_fetched_yet_is_skipped(self):
         self.assertFalse(module().has_content(NOW))
 
+    def test_skipped_on_weekends_and_market_holidays(self):
+        """Joe, Oct 24 2026: no stocks while the market is closed for the day. On by default."""
+        m = module(data=self.data(session=None))
+        friday_night, saturday, sunday, monday = (datetime(2026, 10, 23, 21), datetime(2026, 10, 24, 12),
+                                                  datetime(2026, 10, 25, 12), datetime(2026, 10, 26, 7))
+        self.assertTrue(m.has_content(friday_night))           # Friday's close still shows that evening
+        self.assertFalse(m.has_content(saturday))
+        self.assertFalse(m.has_content(sunday))
+        self.assertTrue(m.has_content(monday))                 # back Monday morning
+        holiday = module(data=dict(self.data(session=None), holiday="Thanksgiving"))
+        self.assertFalse(holiday.has_content(datetime(2026, 11, 26, 12)))
+        m.settings["skip_closed"] = False
+        self.assertTrue(m.has_content(saturday))                # can be turned off
+
+    def test_polls_slowly_while_skipped(self):
+        m = module(data=self.data(session=None))
+        m.last_update = datetime(2026, 10, 24, 12)              # a Saturday
+        self.assertEqual(m.fetch_interval(), stocks.DAY_OFF_SECONDS)
+        m.last_update = datetime(2026, 10, 22, 21)              # a weekday evening
+        self.assertEqual(m.fetch_interval(), stocks.CLOSED_SECONDS)
+
     def test_market_hours_guess(self):
         et = lambda h, m, day=22: datetime(2026, 10, day, h, m)      # noqa: E731  (Oct 22 2026 is a Thursday)
         self.assertEqual(stocks.guess_session(et(9, 29)), "pre-market")

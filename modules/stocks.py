@@ -29,6 +29,7 @@ ET = ZoneInfo("America/New_York")
 INDEXES = [("DOW", "DIA"), ("S&P", "SPY"), ("NASDAQ", "QQQ")]
 OPEN_SECONDS = 60             # quotes every minute while the market is open
 CLOSED_SECONDS = 1800         # and every half hour otherwise (nothing changes)
+DAY_OFF_SECONDS = 3 * 3600    # weekends and market holidays, while Stocks is skipped
 MAX_STOCKS = 40               # keeps a refresh well inside the free tier's 60 calls a minute
 
 UP, DOWN, FLAT = (0, 220, 80), (255, 60, 60), (255, 255, 255)
@@ -105,6 +106,8 @@ class Stocks(Module):
          "hint": f"Ticker symbols like AAPL, in the order you want them shown. Up to {MAX_STOCKS}."},
         {"key": "per_page", "label": "Stocks per page", "type": "select", "default": "1",
          "options": [["1", "1, big (symbol, price, change)"], ["3", "3, compact (symbol and % change)"]]},
+        {"key": "skip_closed", "label": "Skip weekends and market holidays", "type": "bool", "default": True,
+         "hint": "Stocks drops out of the rotation from Saturday to Sunday, and on days the market is closed."},
     ]
 
     def __init__(self, board=None):
@@ -122,7 +125,11 @@ class Stocks(Module):
 
     def fetch_interval(self):
         session = (self.data or {}).get("session")
-        return OPEN_SECONDS if session in ("regular", "pre-market", "post-market") else CLOSED_SECONDS
+        if session in ("regular", "pre-market", "post-market"):
+            return OPEN_SECONDS
+        if self.market_day_off(self.last_update or datetime.now()):
+            return DAY_OFF_SECONDS              # not shown anyway: just keep the last close fresh-ish
+        return CLOSED_SECONDS
 
     def fetch(self, now):
         key = config.load_secrets().get("finnhub_api_key", "").strip()
@@ -192,7 +199,16 @@ class Stocks(Module):
             self.wake.set()                      # new list: fetch now
 
     # ---------- screens ----------
+    def market_day_off(self, now):
+        """A weekend or a market holiday (Finnhub says so and nothing is trading)."""
+        data = self.data or {}
+        return now.weekday() >= 5 or bool(data.get("holiday") and not data.get("session"))
+
     def has_content(self, now):
+        """Skipped with nothing fetched yet, and on weekends and market holidays (Joe, Oct 24 2026:
+        the setting is on by default)."""
+        if self.settings["skip_closed"] and self.market_day_off(now):
+            return False
         return bool(self.data and (self.data["indexes"] or self.data["stocks"]))
 
     def _wanted(self):
