@@ -45,6 +45,9 @@ DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 # .cache/logos (never in git: they're the teams' trademarks), drawn at LOGO x LOGO.
 LOGO = 13
 LOGO_BRIGHTNESS, LOGO_CONTRAST = 1.7, 1.2
+LOGO_STRETCH_MAX = 4.0             # most a regular logo's colours are brightened
+LOGO_VERSION = "v2"                # in the file name; bump to re-download every logo after a change
+COLOURLESS, COLOURFUL = 0.2, 0.5   # a dark-background logo below the first gets the regular one, if it's above the second
 LOGO_DIR = os.path.join(config.BASE_DIR, ".cache", "logos")
 LOGO_HOSTS = ("a.espncdn.com",)
 LOGO_MAX_BYTES = 2_000_000
@@ -82,7 +85,7 @@ def _team(c):
     t = c["team"]
     return {"abbr": t["abbreviation"], "score": c.get("score"),
             "color": t.get("color"), "alt": t.get("alternateColor"),
-            "logo_url": t.get("logoDark") or t.get("logo")}
+            "logo_url": t.get("logoDark") or t.get("logo"), "logo_light_url": t.get("logo")}
 
 
 def parse_scoreboard(body):
@@ -152,9 +155,10 @@ def team_colour(team):
     return c
 
 
-def process_logo(img):
+def process_logo(img, stretch=False):
     """A logo from ESPN (big PNG, see-through background) as a LOGO x LOGO tile on black, brightened
-    so it isn't dim on the LEDs."""
+    so it isn't dim on the LEDs. `stretch` brightens until the brightest colour is at full strength,
+    for the regular (light-background) logos, whose colours are often dark navies and greens."""
     img = img.convert("RGBA")
     box = img.getbbox()
     if box:
@@ -162,7 +166,24 @@ def process_logo(img):
     img.thumbnail((LOGO, LOGO), Image.LANCZOS)
     tile = Image.new("RGB", (LOGO, LOGO), (0, 0, 0))
     tile.paste(img, ((LOGO - img.width) // 2, (LOGO - img.height) // 2), img)
+    if stretch:
+        top = max(hi for _, hi in tile.getextrema())
+        factor = min(LOGO_STRETCH_MAX, 255 / max(1, top))
+        return ImageEnhance.Contrast(tile.point(lambda v: min(255, int(v * factor)))).enhance(LOGO_CONTRAST)
     return ImageEnhance.Contrast(ImageEnhance.Brightness(tile).enhance(LOGO_BRIGHTNESS)).enhance(LOGO_CONTRAST)
+
+
+def colourfulness(tile):
+    """Share of a tile's lit pixels that have real colour (0 = all white/gray, 1 = all coloured)."""
+    lit = coloured = 0
+    for count, (r, g, b) in tile.getcolors(maxcolors=tile.width * tile.height):
+        hi, lo = max(r, g, b), min(r, g, b)
+        if hi < 40:
+            continue
+        lit += count
+        if (hi - lo) / hi > 0.35:
+            coloured += count
+    return coloured / lit if lit else 0.0
 
 
 def _centre(img, font, y, pieces):
@@ -198,7 +219,7 @@ class Games(Module):
 
     def logo_path(self, abbr):
         safe = "".join(ch for ch in abbr.upper() if ch.isalnum())
-        return os.path.join(LOGO_DIR, f"{self.league()}-{safe}.png")
+        return os.path.join(LOGO_DIR, f"{self.league()}-{safe}-{LOGO_VERSION}.png")
 
     def logo(self, team):
         """The team's 13x13 logo tile, or None (not downloaded yet, or logos turned off)."""
@@ -230,18 +251,33 @@ class Games(Module):
                 self._logo_failed[abbr] = time.time()
                 continue
             try:
-                r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-                r.raise_for_status()
-                if len(r.content) > LOGO_MAX_BYTES:
-                    raise ValueError("logo file too big")
-                with Image.open(BytesIO(r.content)) as img:
-                    tile = process_logo(img)
+                tile = process_logo(self._download_image(url))
+                # Some teams' dark-background logo is plain white (Jets, Yankees, Rams, ...): use the
+                # regular logo instead, brightened, if it has the team's colours (Joe, Oct 24 2026)
+                light = team.get("logo_light_url") or ""
+                if colourfulness(tile) < COLOURLESS and light != url and urlparse(light).hostname in LOGO_HOSTS:
+                    try:
+                        coloured = process_logo(self._download_image(light), stretch=True)
+                        if colourfulness(coloured) >= COLOURFUL:
+                            tile = coloured
+                    except Exception as e:
+                        log.info("%s colour logo for %s not available: %s", self.league(), abbr, e)
                 os.makedirs(LOGO_DIR, exist_ok=True)
                 tile.save(path)
                 self._pages_key = None          # redraw with the new logo
             except Exception as e:
                 log.info("%s logo for %s not available: %s", self.league(), abbr, e)
                 self._logo_failed[abbr] = time.time()
+
+    @staticmethod
+    def _download_image(url):
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        if len(r.content) > LOGO_MAX_BYTES:
+            raise ValueError("logo file too big")
+        with Image.open(BytesIO(r.content)) as img:
+            img.load()
+            return img.copy()
 
     # ---------- fetching ----------
     def params(self, now):

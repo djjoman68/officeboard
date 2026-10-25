@@ -305,6 +305,45 @@ class TestTeamLook(support.TempFiles):
         m.refresh(NOW)
         self.assertEqual(cdn.images, 7)                                        # and not retried for 6 hours
 
+    def test_white_logo_swapped_for_the_coloured_one(self):
+        """Joe, Oct 24 2026: the Jets looked white and washed out. ESPN's dark-background Jets logo is
+        plain white; the regular one is dark green. Use the regular one, brightened."""
+        body = with_logos(nfl_week())
+        for e in body["events"]:
+            for c in e["competitions"][0]["competitors"]:
+                c["team"]["logo"] = c["team"]["logoDark"].replace("500-dark", "500")
+        served = []
+
+        def get(url, params=None, **kw):
+            if "espncdn" not in url:
+                return FakeESPN(body).get(url, params, **kw)
+            served.append(url)
+            nyj = "/nyj.png" in url
+            colour = ((18, 87, 64) if "/500/" in url else (255, 255, 255)) if nyj else (220, 30, 30)
+
+            class Resp:
+                status_code = 200
+                content = png(colour)
+
+                def raise_for_status(self):
+                    pass
+            return Resp()
+        games.requests.get = get
+        m = Nfl()
+        m.refresh(NOW)
+        self.assertEqual(sum("nyj" in u for u in served), 2)             # dark one, then the regular one
+        self.assertEqual(len(served), 9)                                  # the others: one download each
+        r, g, b = m.logo({"abbr": "NYJ"}).getpixel((6, 6))
+        self.assertGreater(g, 200)                                        # green, brightened to full
+        self.assertLess(r, g / 2)
+        self.assertTrue(m.logo_path("NYJ").endswith("-v2.png"))           # old white tiles aren't reused
+
+    def test_colourfulness(self):
+        from PIL import Image
+        self.assertEqual(games.colourfulness(Image.new("RGB", (13, 13), (255, 255, 255))), 0.0)
+        self.assertEqual(games.colourfulness(Image.new("RGB", (13, 13), (20, 200, 120))), 1.0)
+        self.assertEqual(games.colourfulness(Image.new("RGB", (13, 13), (0, 0, 0))), 0.0)
+
     def test_preview_page_uses_team_colours(self):
         m = module(Nfl, with_logos(nfl_week()))
         self.assertIn((230, 65, 0), colours(m.pages(NOW)[0]))

@@ -211,6 +211,11 @@ Each step ends with a preview (image or GIF) for Joe to approve.
    total on the other row right above or below it as "o49.5", since "O/U 49.5" won't fit beside a
    three-letter team (Joe, Oct 22 2026); MLB moneyline on both rows: TB +133 / MIL -161). The bottom
    line is just the start time ("SUN 1:00p"). Colour badges were tried and dropped: too many colour pairs were unreadable.
+   **White logos (Joe, Oct 24 2026):** ESPN's dark-background logo is plain white for about ten teams
+   (Jets, Rams, Giants, Yankees, Dodgers, Braves, Phillies, Royals, Tigers, Rays), so they looked washed
+   out. When a dark-background logo has no colour, the board uses the team's regular logo instead,
+   brightened until its colours show. Logos that really are white or silver (Raiders, Saints, White Sox)
+   stay as they were. Logo files are named with a version (v2), so a Pi re-downloads them all once.
 
 ## Still open
 
